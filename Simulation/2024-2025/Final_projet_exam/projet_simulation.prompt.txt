@@ -1,0 +1,18 @@
+Tu es un étudiant à l'université , pour un projet de fin d'année comptant pour la note finale , on donne le travail suivant :
+
+
+Etudier le caractère pseudo-aléatoire des décimales de e par des tests
+ vus au cours (2 000 000 décimales de e sont fournies sur moodle).
+ Utiliser ensuite ces décimales de e pour construire un générateur de loi
+ uniforme [0,1[ et le comparer au générateur par défaut de Python.
+ Dans chaque cas (les décimales et le générateur), utiliser au moins
+ trois tests différents incluant le test de chi2).
+
+En t'inspirant des conversations précédentes et fichier ci joint,
+
+ce que tu dois faire :
+- construire un générateur de loi uniforme ([0,1[) à partir des 2 millions de décimales de e . on va le nommer eGenerator
+- implementer 3 test . Içi sera celui de chi2 , du gap du poker
+- utiliser ces 3 test pour tester si  le eGenerator et le générateur par défaut de python sont de loi uniforme[0,1[
+- faire une étude de comparaison sur les performances de chaque générateur selon les tests utilisés. Cela inclurant un algorithme de testing , des histogrammes de comparaison etc...
+- faire un rapport sur l'etude faites sur les points précédant selon les consignes de redacSci.pdf
