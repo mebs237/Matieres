@@ -32,6 +32,8 @@
 
 # Fichiers de configuration de l'environnement Python
 __pycache__/
+.pytest_cache/
+.coverage
 *.py[cod]
 *.pyo
 *.pyd
@@ -74,7 +76,7 @@ yarn-error.log
 *.db
 *.sqlite
 *.sqlite3
-
+*.gitignore
 # Fichiers de configuration de l'environnement de développement personnel
 *.DS_Store
 Thumbs.db
@@ -129,6 +131,10 @@ Intro au calcul scientifique/2024-2025/war_up/warm_up-25.pdf
 Intro au calcul scientifique/Matplotlib-demo-1.0 (1).tar.gz
 Intro au calcul scientifique/TPx (4).tar.gz
 
+#Intro au Machine Learning
+Intro au Machine Learning DS/Tp/lab3/lab3.zip
+Intro au Machine Learning DS/Autres lectures/
+Intro au Machine Learning DS/Lectures-Syllabus/
 # Logique et théorie des modèles
 Logique_Theorie_des_modeles/
 
