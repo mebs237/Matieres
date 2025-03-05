@@ -1,0 +1,171 @@
+# Fichiers de configuration spécifiques à l'utilisateur
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+
+# Fichiers de configuration de l'éditeur
+.vscode/
+.idea/
+*.code-workspace
+
+# Fichiers de compilation LaTeX
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+*.out
+*.log
+*.nav
+*.snm
+*.vrb
+*.lof
+*.lot
+
+# Fichiers PDF générés
+*.pdf
+
+# Fichiers de configuration de l'environnement Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Fichiers de configuration de l'environnement Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Fichiers de configuration de l'environnement Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Fichiers de configuration de l'environnement JavaScript
+*.js.map
+*.d.ts
+
+# Fichiers de configuration de l'environnement Jupyter Notebook
+.ipynb_checkpoints/
+
+# Fichiers de configuration de l'environnement R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Fichiers de configuration de l'environnement MATLAB
+*.asv
+*.m~
+
+# Fichiers de configuration de l'environnement de base de données
+*.db
+*.sqlite
+*.sqlite3
+
+# Fichiers de configuration de l'environnement de développement personnel
+*.DS_Store
+Thumbs.db
+*.continue
+
+# les fichiers / dossiers spécifiques à ignorer
+Algebre_I/
+
+Algebre_II/
+
+Algebre_III/
+
+Algebre_lineaire_et_geometrie_I/
+
+Algebre_lineaire_et_geometrie_II/
+
+Analyse_I/
+
+Analyse_II/
+
+Anglais/
+
+Base_de_donnee/
+
+calculus_I/
+
+calculus_II/
+
+deep_learning/
+
+Developpement_personnel/
+
+Dossiers_des_Franck_mims/
+
+Ecole/
+
+fonctionnement_des_ordinateurs/
+
+IA/
+
+Java/
+
+Latex/
+
+# Intro au calcul scientifique
+Intro au calcul scientifique/2022-2023/
+Intro au calcul scientifique/2023-2024/
+Intro au calcul scientifique/2024-2025/war_up/.continue/
+Intro au calcul scientifique/2024-2025/war_up/.vscode/
+Intro au calcul scientifique/2024-2025/war_up/__pycache__/
+Intro au calcul scientifique/2024-2025/war_up/warm_up-25.pdf
+Intro au calcul scientifique/Matplotlib-demo-1.0 (1).tar.gz
+Intro au calcul scientifique/TPx (4).tar.gz
+
+# Logique et théorie des modèles
+Logique_Theorie_des_modeles/
+
+# Mathématiques financières
+Maths_financieres/
+
+# Méthodes numériques
+README.md
+
+# Simulation
+Simulation/2023-2024/
+Simulation/2024-2025/Donald.E.Knuth - The Art of Computer Programming I-III, Concrete Mathematics, The Tex Book/
+Simulation/2024-2025/Final_projet_exam/Rapport/.Rhistory
+Simulation/2024-2025/Final_projet_exam/Rapport/Rapport.Rmd
+Simulation/2024-2025/Final_projet_exam/Rapport/Rapport.md
+Simulation/2024-2025/Final_projet_exam/Rapport/Rapport.tex
+Simulation/2024-2025/Final_projet_exam/Rapport/observed_vs_expected.png
+Simulation/2024-2025/Final_projet_exam/src/group_class.prompt.txt
+Statistiques/
+
+# Variétes diff
+"Varietes_diif/"
+
+# comptage.py
+comptage.py
+
+cours univ Rennes.pdf
+
+proba et stat/
+
+projet_transversal_de_mathematique/
+
+pythons/
+
+seance1.R
+
+structures_de_donnees/
+
+# tests et exams
+tests et exams/

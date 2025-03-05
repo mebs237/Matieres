@@ -38,20 +38,21 @@ class Chi2Test(Test):
     @staticmethod
     def group_low_frequencies(observed:np.ndarray, expected:np.ndarray, threshold=5):
         """
-            Regroupe les catégories avec des fréquences attendues inférieures au seuil = threshold
+            Regroupe les catégories adjacentes avec des fréquences attendues inférieures au seuil = threshold jusqu'a ce que 80% des fréquences attendues soient supérieures au seuil
         """
+        low_freq = expected < threshold
+        very_low_freq = expected < 1
+        percent_low_freq = np.sum(low_freq) / len(expected)
+        percent_very_low_freq = np.sum(very_low_freq) / len(expected)
+        max_percent_low_freq = 0.2
 
-        # Indices des catégories à regrouper
-        low_freq_indices = np.where(expected < threshold)
+        while percent_low_freq > max_percent_low_freq and percent_very_low_freq > 0:
 
-        # Regroupement des catégories en une seule
-        if low_freq_indices.size > 0:
-            observed[low_freq_indices[0]] = observed[low_freq_indices].sum()
-            expected[low_freq_indices[0]] = expected[low_freq_indices].sum()
-            observed = np.delete(observed, low_freq_indices[1:])
-            expected = np.delete(expected, low_freq_indices[1:])
-
-        return observed, expected
+            expected[low_freq] = np.roll(expected, -1)[low_freq] + expected[low_freq]
+            expected = np.delete(expected, np.where(low_freq)[0][:-1])
+            low_freq = expected < threshold
+            percent_low_freq = np.sum(expected < threshold) / len(expected)
+            percent_very_low_freq = np.sum(expected < 1) / len(expected)
 
     @staticmethod
     def chi2_statistic(observed:np.ndarray, expected:np.ndarray,threshold = 2 )->float:

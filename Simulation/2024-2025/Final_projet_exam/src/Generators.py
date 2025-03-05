@@ -42,7 +42,7 @@ class PythonGenerator(Generators):
         return np.random.random()
 
 
-class eGenerator(Generators):
+class ExpGenerator(Generators):
     """
     Classe qui implemente notre générateur pseudo-aléatoire d'une loi uniforme [0; 1[ utilisant une sequence 'decimals' de chiffres
 
@@ -66,7 +66,7 @@ class eGenerator(Generators):
 
         return "PiGenerator"
 
-    def __init__(self, decimals : np.ndarray,lg : int =7)->None:
+    def __init__(self, decimals : np.ndarray,lg : int =10)->None:
         """
         Args
         ---
