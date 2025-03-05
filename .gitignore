@@ -76,7 +76,8 @@ yarn-error.log
 *.db
 *.sqlite
 *.sqlite3
-*.gitignore
+.gitignore
+.gitattributes
 # Fichiers de configuration de l'environnement de développement personnel
 *.DS_Store
 Thumbs.db
