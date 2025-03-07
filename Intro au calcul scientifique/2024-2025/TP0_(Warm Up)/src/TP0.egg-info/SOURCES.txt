@@ -1,0 +1,11 @@
+MANIFEST.in
+README.txt
+setup.py
+src/graph.py
+src/produit.py
+src/question2.pdf
+src/test_produit.py
+src/TP0.egg-info/PKG-INFO
+src/TP0.egg-info/SOURCES.txt
+src/TP0.egg-info/dependency_links.txt
+src/TP0.egg-info/top_level.txt
