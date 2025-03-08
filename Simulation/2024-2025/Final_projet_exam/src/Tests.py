@@ -1,30 +1,63 @@
 """ Module des Tests """
 
 from abc import ABC , abstractmethod
+from math import factorial
+from functools import cache
+from typing import Literal , List,Dict,Tuple
+from numpy.typing import NDArray
 import numpy as np
 from scipy.stats import chi2
 
+# Les fonctions comunes à plusieurs tests
+@cache
+def stirling(n:int,k:int)->int:
+    """
+    Méthode pour calculer le nombre de stirling de deuxième espèce.
+    """
+    assert n >= 0 and k >= 0 , "n et k doivent être plus grand que 0."
+
+    if n == k:
+        return 1
+
+    elif n == 0 or k == 0:
+        return 0
+
+    return k * stirling(n - 1, k) + stirling(n - 1, k - 1)
+@cache
+def input_type(data:NDArray)->Literal["integers","decimals"]:
+    """
+        Méthode pour déterminer le type de données
+    """
+    return "integers" if isinstance(data[0],int) else "decimals"
 
 class Test(ABC):
     """
-    Classe abstraite représentant un test d'hypothèse.
+    Classe abstraite définissant un test d'hypothèse.
     """
     @abstractmethod
-    def test(self, data:np.ndarray) -> dict:
+    def __str__(self)->str:
+        """
+        Méthode  permettant  de récupérer le nom du test.
+        """
+
+    @abstractmethod
+    def test(self, data:NDArray,alpha:float=0.05,info:bool=False) -> float|Dict:
         """
             teste  la séquence de nombres data
 
             Args:
                 data : suite de nombre à tester
-                alpha : seuil
+                alpha : seuil de signification (pourcentage d'erreur permit)
+                info : si True retourne des infos supplementaires sur le test effectué
 
             Returns:
-                dic : un dictionnaire contenant la statistique χ² , p-valeur
+                _ : si info retourne un Dictionnaire contenant la stat seuil et observée Kᵣ , Kₐ , p-valeur ,
         """
 
 
 class Chi2Test(Test):
-    """classe qui represente le test de χ²
+    """
+        classe qui impléménte le test de χ²
 
         Args:
             k:nombre de bins pour la catégorisation des nombres de data
@@ -36,57 +69,51 @@ class Chi2Test(Test):
         return "χ² Test "
 
     @staticmethod
-    def group_low_frequencies(observed:np.ndarray, expected:np.ndarray, threshold=5):
+    def group_low_frequencies(observed:NDArray, expected:NDArray, threshold=5)->Tuple[NDArray,NDArray]:
         """
             Regroupe les catégories adjacentes avec des fréquences attendues inférieures au seuil = threshold jusqu'a ce que 80% des fréquences attendues soient supérieures au seuil
         """
-        low_freq = expected < threshold
-        very_low_freq = expected < 1
-        percent_low_freq = np.sum(low_freq) / len(expected)
-        percent_very_low_freq = np.sum(very_low_freq) / len(expected)
-        max_percent_low_freq = 0.2
+        pass
+        return observed, expected
 
-        while percent_low_freq > max_percent_low_freq and percent_very_low_freq > 0:
-
-            expected[low_freq] = np.roll(expected, -1)[low_freq] + expected[low_freq]
-            expected = np.delete(expected, np.where(low_freq)[0][:-1])
-            low_freq = expected < threshold
-            percent_low_freq = np.sum(expected < threshold) / len(expected)
-            percent_very_low_freq = np.sum(expected < 1) / len(expected)
+    #group_low_frequencies n'est impléménté que dans cette classe car n'est utlisé que dans le cadre d'un test de chi2
 
     @staticmethod
-    def chi2_statistic(observed:np.ndarray, expected:np.ndarray,threshold = 2 )->float:
+    def chi2_statistic(observed:NDArray, expected:NDArray)->float:
         """
-            calcule la statistique chi2 en la corrigeant dans le cas de faibles fréquences théoriques
+            Calcule la statistique du chi carré
         """
-        observed , expected = Chi2Test.group_low_frequencies(observed,expected, threshold)
-        chi2_stat = np.sum((observed - expected) ** 2 / expected)
 
+        observed, expected = Chi2Test.group_low_frequencies(observed, expected)
+        return np.sum((observed - expected) ** 2 / expected) , observed.size - 1
 
-        return float(chi2_stat)
-
-    def test(self,data:np.ndarray)->dict:
+    def test(self, data:NDArray,alpha:float=0.05,info:bool=False) -> float|Dict:
 
         N = len(data)
+        if input_type(data) == "integers":
+            observed = np.bincount(data,minlength=np.max(data)+1)
+
         #les fréquences observées pour k bins
         observed , _ = np.histogram(data,bins=self.k)
 
         # les fréquences attendues pour k bins
         expected = np.full(self.k , N/self.k)
 
-        #statistique du chi carré
-        chi2_stat= self.chi2_statistic(observed,expected)
 
-        # calcul de la p-valeur et du dégré de liberté
+        #statistique du chi carré et degré de liberté
+        chi2_stat , df = Chi2Test.chi2_statistic(observed, expected)
 
-        df = observed.size - 1
-
-        p_value = float(chi2.sf(chi2_stat, df))
+        #p-valeur
+        p_value = float(chi2.cdf(chi2_stat, df))
+        # Valeur/statistique critique
+        Ka = float(chi2.ppf(1-alpha,df))
 
         return {
-            "chi2_stat": chi2_stat,
-            "p_value": p_value
-        }
+            "K": chi2_stat,
+            "Ka": Ka,
+            "p_value": p_value,
+            "df": df
+        }if info else p_value
 
 
 class GapTest(Test):
@@ -98,15 +125,15 @@ class GapTest(Test):
             b : borne supérieure de l'intervalle pour le marquage
             g : fonction de calcul du paramètre p de la loi gémetrique
     """
-    def __init__(self, a=0.1,b=0.2):
+    def __init__(self, a=0.1,b=0.3):
         self.a = a
         self.b = b
-        self.norm = False
+        self.p = b-a
     def __str__(self):
         return "Gap Test "
 
 
-    def test(self, data : np.ndarray,alpha=0.05)->dict:
+    def test(self, data:NDArray,alpha:float=0.05,info:bool=False) -> float|Dict:
 
         #selection des indices des nombres à marquer
         mark = (data >= self.a) & (data <= self.b)
@@ -120,25 +147,23 @@ class GapTest(Test):
         else:
             raise ValueError(f"il n' y a pas de gaps  sur  rapport à l'intervalle [{self.a} , {self.b}[ ")
 
-        if isinstance(data[0],int): # pour savoir si c'est une séquence de nombre entier >=1 ou décimaux
-            p = (self.b-self.a+1)/np.max(data)
-        else :
-            p = self.b-self.a
+
 
         max_gap = np.max(gaps)
-        expected = (gaps.size * p) * ( (1 - p) ** np.arange(max_gap + 1))
+        expected = (gaps.size * self.p) * ( (1 - self.p) ** np.arange(max_gap + 1))
 
-        # statistique du Chi carré
-        chi2_stat = Chi2Test.chi2_statistic(observed, expected)
+        # statistique du Chi carré , et déré de liberté
+        chi2_stat  , df = Chi2Test.chi2_statistic(observed, expected)
 
-        # p-valeur et degré de liberté
+        #p-valeur
+        p_value = float(chi2.cdf(chi2_stat, df))
 
-        df = len(observed) - 1
-
-        p_value = chi2.sf(chi2_stat, df)
-
+        # Valeur/statistique critique
+        Ka = float(chi2.ppf(1-alpha,df))
 
         return {
-            "chi2_stat": chi2_stat,
+            "K": chi2_stat,
+            "Ka": Ka,
             "p_value": p_value,
-        }
+            "df": df
+        }if info else p_value

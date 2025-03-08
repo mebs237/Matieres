@@ -1,7 +1,7 @@
 # import multiprocessing.pool
 import numpy as np
 from Tests import Chi2Test, GapTest, Test
-from Generators import Generators
+from GeneratorsOp0 import Generators
 
 def test_generator(generator: Generators, alpha: float = 0.05, k : int = 100, n: int = 200000, tests: list[Test] = None,display =False, plot = False ):
     """
