@@ -22,7 +22,7 @@ class Generators(ABC):
 
         Args
         ---
-            n (int) : quantité (nombre) de nombres à générer
+            n (int) : quantité  de nombres à générer
         """
         return array([self.next() for _ in range(n)])
 
@@ -32,6 +32,7 @@ class PythonGenerator(Generators):
     """
     def __str__(self):
         return "PythoGenerator"
+        
     def next(self):
         return random()
 
