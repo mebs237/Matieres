@@ -1,0 +1,28 @@
+[MESSAGES CONTROL]
+disable=
+    C0111,  # Disable missing docstring
+    C0115,  # Disable class missing docstring
+    C0116,  # Disable function missing docstring
+    C0103,  # Disable invalid-name
+    C0304,  # Disable line-too-long
+    R0903,  # Disable too-few-public-methods
+    R0913,  # Disable too-many-arguments
+    R0914,  # Disable too-many-locals
+    R0915,  # Disable too-many-statements
+    W0511   # Disable fixme
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=80
+
+[DESIGN]
+# Maximum number of arguments for function / method.
+max-args=10
+# Maximum number of locals for function / method body.
+max-locals=15
+# Maximum number of return / yield for function / method body.
+max-returns=6
+# Maximum number of branch for function / method body.
+max-branches=12
+# Maximum number of statements in function / method body.
+max-statements=50
