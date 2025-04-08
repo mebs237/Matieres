@@ -7,7 +7,7 @@ from Equilibres_0 import (
 )
 
 # Paramètres de test
-E_TEST_VALUES = [0.0, 0.1, 0.3, 0.4]
+E_TEST_VALUES = [0.0, 0.1, 0.3, 0.4 , 0.5 , 0.6 , 0.7 , 0.8]
 V_TEST_VALUES = [
     np.array([0.0, 0.0]),
     np.array([0.0, 1.0]),
