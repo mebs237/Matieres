@@ -1,7 +1,13 @@
+
+"""
+Module pour la partie implementation du Tp
+"""
+from typing import Callable
 from numpy import ndarray , array , where , float64
 from pandas import read_csv
 from scipy.linalg import solve
-from typing import Callable
+
+
 
 # import du fichier de données
 Data = array(read_csv("least_square25.csv") , dtype=float64)
@@ -37,16 +43,16 @@ def solution(x:ndarray,y:ndarray)->tuple[ndarray , Callable[[ndarray],ndarray]]:
     """
         retourne l'ensemble des solutions de la procédure des moindres carrés u0 + ker(A)
 
-        param
-        ---
+
+        Args:
             x : les élongations
             y : la réponse du ressort
 
-        Return
+        Returns
         ---
-            _ : le tuple u0 , gen où ;
-            u0 : solution particulière , minimum sur l'orthogonale de ker(A)
-            gen : solutions translatée par un élément de Ker(A)
+            u₀ : solution particulière ( ε₀ , k₀ )
+            gen : fonction génératrice d'autre solutions
+
     """
 
     m = matrice(x)
@@ -55,27 +61,22 @@ def solution(x:ndarray,y:ndarray)->tuple[ndarray , Callable[[ndarray],ndarray]]:
     # ker(A) = {0} : unique solution u0
     if inj :
         u0 = solve(A , y)
-        def gen(t):
-            return u0
 
-        return u0 , gen
+
+        return u0 , lambda _ :u0
 
     # ker(A) = R² : les solutions sont 0 + Ker(A)
     if l is None :
         u0 = array([0,0]) # orth(ker(A)) = {0}
-        def gen(t1:float,t2:float)->ndarray:
-            if t1<=0 or t2<0:
-                raise ValueError(f" il faut t1 > 0 et t2 ≥ 0 au lieu de {t1:.3f} et {t2:.3f} ")
-            return array([t1,t2])
 
-        return  u0 , gen
 
-    # ker(A) = span((-λ , 1)) : les solutions sont les u₀ + Ker(A)
-    h0 = (1/(1+l**2))*(sum(X*f)/sum(X**2))
-    u0 = h0*array([1 , l]) # car orth(ker(A)) = span((1 , λ))
-    def gen(t): =  lambda t :
+        return u0 , lambda t1 , t2 : array([t1,t2])
+    else :
+        # ker(A) = span((-λ , 1)) : les solutions sont les u₀ + Ker(A)
+        h0 = (1/(1+l**2))*(sum(X*f)/sum(X**2))
+        u0 = h0*array([1 , l]) # car orth(ker(A)) = span((1 , λ))
 
-        return u0 + l*array([-l , 1])
-    return  u0 , gen
+        return u0 , lambda t : u0 + t*array([1,l])
+
 
 

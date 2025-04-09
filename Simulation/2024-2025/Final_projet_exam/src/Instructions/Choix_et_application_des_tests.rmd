@@ -1,15 +1,15 @@
 Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le meilleur choix de test parmi ceux que vous avez mentionnés dépend des caractéristiques spécifiques que vous souhaitez évaluer concernant l'aléatoire de la séquence. Chaque test a ses propres forces et faiblesses et est conçu pour détecter différents types de non-aléatoire. Voici une analyse de chacun de ces tests et une proposition de méthode d'application basée sur les sources :
 
 *   **Test du Chi-deux (χ²)** :
-    *   **Adaptabilité :** Le test du χ² peut être appliqué à des séquences d'entiers ou de nombres à virgule flottante, mais il nécessite une étape de **discrétisation ou de catégorisation** pour les nombres à virgule flottante. Pour les entiers, ils peuvent être groupés dans des catégories si leur plage est étendue.
-    *   **Principe :** Compare la fréquence observée des nombres (ou des catégories de nombres) à la fréquence attendue sous l'hypothèse d'une distribution uniforme ou d'une autre distribution théorique.
-    *   **Méthode d'application :**
+    -   **Adaptabilité :** Le test du χ² peut être appliqué à des séquences d'entiers ou de nombres à virgule flottante, mais il nécessite une étape de **discrétisation ou de catégorisation** pour les nombres à virgule flottante. Pour les entiers, ils peuvent être groupés dans des catégories si leur plage est étendue.
+    -   **Principe :** Compare la fréquence observée des nombres (ou des catégories de nombres) à la fréquence attendue sous l'hypothèse d'une distribution uniforme ou d'une autre distribution théorique.
+    -   **Méthode d'application :**
         1.  **Définir des catégories :** Pour une séquence d'entiers dans une plage [0, d-1), chaque entier peut constituer une catégorie (comme dans le test d'équirépartition). Pour des nombres à virgule flottante dans [0, 1), divisez l'intervalle en $k$ sous-intervalles de taille égale (par exemple, $[0, 1/k), [1/k, 2/k), ..., [(k-1)/k, 1)$).
         2.  **Compter les occurrences :** Comptez le nombre d'éléments de la séquence qui tombent dans chaque catégorie ($n_i$, où $i$ va de 1 à $k$).
         3.  **Calculer les fréquences attendues :** Sous l'hypothèse d'une distribution uniforme, si la séquence contient $N$ nombres, la fréquence attendue dans chaque catégorie est $Np_i$, où $p_i$ est la probabilité théorique de tomber dans la catégorie $i$ (par exemple, $1/k$ pour une distribution uniforme avec $k$ catégories).
         4.  **Calculer la statistique du χ² :** Utilisez la formule $V = \sum_{i=1}^{k} \frac{(n_i - Np_i)^2}{Np_i}$. Une formule alternative peut être utilisée : $V = (\sum_{i=1}^{k} \frac{n_i^2}{Np_i}) - N$.
         5.  **Comparer à la distribution χ² :** Comparez la valeur de $V$ à la valeur critique de la distribution du χ² avec $k-1$ degrés de liberté pour un niveau de signification choisi (par exemple, $\alpha = 0.05$). Si $V$ dépasse la valeur critique, l'hypothèse nulle (que la distribution est conforme à la distribution attendue) est rejetée.
-    *   **Algorithme (généralisé) :**
+    -   **Algorithme (généralisé) :**
         ```
         Fonction TestChiDeux(sequence, nombreCategories, probabilitesAttendues):
             comptesObserves = initialiserTableau(nombreCategories, 0)
@@ -28,9 +28,9 @@ Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le
         ```
 
 *   **Test du Gap** :
-    *   **Adaptabilité :** Conçu spécifiquement pour des séquences de **nombres réels (à virgule flottante)** dans l'intervalle $[0, 1)$.
-    *   **Principe :** Examine la longueur des "gaps" entre les occurrences de nombres tombant dans un intervalle spécifié $[\alpha, \beta)$ où $0 \le \alpha < \beta \le 1$.
-    *   **Méthode d'application (basée sur l'Algorithme G) :**
+    -   **Adaptabilité :** Conçu spécifiquement pour des séquences de **nombres réels (à virgule flottante)** dans l'intervalle $[0, 1)$.
+    -   **Principe :** Examine la longueur des "gaps" entre les occurrences de nombres tombant dans un intervalle spécifié $[\alpha, \beta)$ où $0 \le \alpha < \beta \le 1$.
+    -   **Méthode d'application (basée sur l'Algorithme G) :**
         1.  **Choisir $\alpha$ et $\beta$ :** Définissez l'intervalle d'intérêt, et calculez $p = \beta - \alpha$, la probabilité qu'un nombre aléatoire uniforme tombe dans cet intervalle.
         2.  **Choisir $t$ et $n$ :** Déterminez le nombre maximal de longueurs de gap à considérer explicitement ($t$) et le nombre total de gaps à observer ($n$). Choisissez-les de manière à ce que le nombre attendu de gaps de chaque longueur soit d'au moins 5.
         3.  **Exécuter l'Algorithme G :**
@@ -45,7 +45,7 @@ Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le
             *   $P_i = p(1-p)^i$ pour $0 \le i < t$.
             *   $P_t = (1-p)^t$.
             Appliquez le test du χ² avec $k = t + 1$ catégories et les probabilités attendues $NP_i$, où $N = n$ (le nombre de gaps observés).
-    *   **Algorithme (simplifié) :**
+    -   **Algorithme (simplifié) :**
         ```
         Fonction TestGap(sequence, alpha, beta, t, n):
             compteurGaps = initialiserTableau(t + 1, 0)
@@ -86,9 +86,9 @@ Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le
         ```
 
 *   **Test du Poker (Partition Test)** :
-    *   **Adaptabilité :** Classiquement conçu pour des séquences d'**entiers** (typiquement dans la plage 0-9, en considérant des groupes de 5). Il analyse les motifs (tous différents, une paire, deux paires, etc.) dans ces groupes. L'adaptation à des nombres à virgule flottante n'est pas directe et nécessiterait une discrétisation significative et une redéfinition des "motifs".
-    *   **Principe :** Examine la fréquence de différentes configurations ("mains de poker") dans des groupes consécutifs d'éléments de la séquence.
-    *   **Méthode d'application (pour entiers) :**
+    -   **Adaptabilité :** Classiquement conçu pour des séquences d'**entiers** (typiquement dans la plage 0-9, en considérant des groupes de 5). Il analyse les motifs (tous différents, une paire, deux paires, etc.) dans ces groupes. L'adaptation à des nombres à virgule flottante n'est pas directe et nécessiterait une discrétisation significative et une redéfinition des "motifs".
+    -   **Principe :** Examine la fréquence de différentes configurations ("mains de poker") dans des groupes consécutifs d'éléments de la séquence.
+    -   **Méthode d'application (pour entiers) :**
         1.  **Choisir la taille du groupe $t$ :** Généralement $t=5$ pour la version classique.
         2.  **Définir les catégories de motifs :** Identifiez les différents motifs possibles (par exemple, pour $t=5$: tous différents, une paire, deux paires, trois d'un type, full house, quatre d'un type, cinq d'un type).
         3.  **Parcourir la séquence par groupes de $t$ :** Pour chaque groupe, déterminez le motif auquel il correspond.
@@ -97,9 +97,9 @@ Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le
         6.  **Appliquer le test du χ² :** Utilisez les fréquences observées et attendues pour chaque motif dans la statistique du χ² avec un nombre de degrés de liberté égal au nombre de motifs moins 1.
 
 *   **Test du Collectionneur de Coupons** :
-    *   **Adaptabilité :** Conçu pour des séquences d'**entiers** dans une plage $[0, d-1)$.
-    *   **Principe :** Examine la longueur des segments de la séquence nécessaires pour obtenir un ensemble complet de $d$ valeurs différentes.
-    *   **Méthode d'application (basée sur l'Algorithme C) :**
+    -   **Adaptabilité :** Conçu pour des séquences d'**entiers** dans une plage $[0, d-1)$.
+    -   **Principe :** Examine la longueur des segments de la séquence nécessaires pour obtenir un ensemble complet de $d$ valeurs différentes.
+    -   **Méthode d'application (basée sur l'Algorithme C) :**
         1.  **Choisir $d$ et $t$ :** $d$ est le nombre total de valeurs possibles (la taille de l'ensemble de "coupons"). $t$ est une limite supérieure pour la longueur des segments à considérer explicitement. Choisissez $n$ (le nombre de segments à observer) de manière appropriée.
         2.  **Exécuter l'Algorithme C :**
             *   Initialiser : $j = -1$, $s = 0$, et un tableau `COUNT[d...t]` à 0.
@@ -117,15 +117,15 @@ Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le
             Appliquez le test du χ² avec $k = t - d + 1$ catégories et les probabilités attendues $Np_r$.
 
 *   **Test des Permutations** :
-    *   **Adaptabilité :** Conçu pour des séquences de **nombres réels (à virgule flottante)**, en supposant qu'il y a une faible probabilité d'avoir des valeurs identiques dans un petit sous-groupe.
-    *   **Principe :** Divise la séquence en groupes de $t$ éléments et examine l'ordre relatif des nombres à l'intérieur de chaque groupe. Si la séquence est aléatoire, toutes les $t!$ permutations relatives devraient être à peu près équiprobables.
-    *   **Méthode d'application (basée sur l'Algorithme P) :**
+    -   **Adaptabilité :** Conçu pour des séquences de **nombres réels (à virgule flottante)**, en supposant qu'il y a une faible probabilité d'avoir des valeurs identiques dans un petit sous-groupe.
+    -   **Principe :** Divise la séquence en groupes de $t$ éléments et examine l'ordre relatif des nombres à l'intérieur de chaque groupe. Si la séquence est aléatoire, toutes les $t!$ permutations relatives devraient être à peu près équiprobables.
+    -   **Méthode d'application (basée sur l'Algorithme P) :**
         1.  **Choisir la taille du groupe $t$ :** Une petite valeur comme $t=3$ ou $t=4$ est souvent utilisée pour éviter un grand nombre de permutations ($t!$).
         2.  **Diviser la séquence en $n$ groupes de $t$ :** $(U_{jt}, U_{jt+1}, ..., U_{jt+t-1})$ pour $0 \le j < n$.
         3.  **Pour chaque groupe, déterminer sa permutation relative :** Trouvez le rang de chaque élément dans le groupe.
         4.  **Compter les occurrences de chaque permutation :** Il y a $t!$ permutations possibles. Utilisez un tableau pour compter la fréquence de chaque permutation observée. L'Algorithme P décrit une méthode pour convertir une permutation en un entier unique dans la plage $[0, t!-1)$ en utilisant le système de numération factorielle.
         5.  **Appliquer le test du χ² :** Sous l'hypothèse d'aléatoire, chaque permutation a une probabilité attendue de $1/t!$. Utilisez les fréquences observées et attendues ($n/t!$) pour appliquer le test du χ² avec $k = t!$ catégories et $t! - 1$ degrés de liberté.
-    *   **Algorithme (conversion de permutation en entier, simplifié) :**
+    -   **Algorithme (conversion de permutation en entier, simplifié) :**
         ```
         Fonction PermutationEnEntier(groupe):
             t = longueur(groupe)
@@ -150,9 +150,9 @@ Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le
         ```
 
 *   **Test du Maximum-de-$t$** :
-    *   **Adaptabilité :** Conçu pour des séquences de **nombres réels (à virgule flottante)** dans l'intervalle $[0, 1)$.
-    *   **Principe :** Examine la distribution du maximum de sous-séquences consécutives de longueur $t$. Si les nombres sont uniformément distribués, la fonction de distribution du maximum de $t$ nombres devrait être $F(z) = z^t$ pour $0 \le z \le 1$.
-    *   **Méthode d'application :**
+    -   **Adaptabilité :** Conçu pour des séquences de **nombres réels (à virgule flottante)** dans l'intervalle $[0, 1)$.
+    -   **Principe :** Examine la distribution du maximum de sous-séquences consécutives de longueur $t$. Si les nombres sont uniformément distribués, la fonction de distribution du maximum de $t$ nombres devrait être $F(z) = z^t$ pour $0 \le z \le 1$.
+    -   **Méthode d'application :**
         1.  **Choisir la taille du sous-groupe $t$ :**
         2.  **Diviser la séquence en sous-groupes de $t$ :** $(U_{jt}, U_{jt+1}, ..., U_{jt+t-1})$ pour $0 \le j < n$.
         3.  **Calculer le maximum de chaque sous-groupe :** $V_j = \max(U_{jt}, ..., U_{jt+t-1})$.
@@ -161,9 +161,9 @@ Pour une séquence de nombres, qu'ils soient entiers ou à virgule flottante, le
             *   **Test χ² :** Divisez l'intervalle $[0, 1)$ en $k$ sous-intervalles. Pour chaque sous-intervalle, calculez la probabilité théorique qu'un maximum de $t$ nombres uniformes y tombe (basée sur $F(z) = z^t$). Comptez le nombre de $V_j$ qui tombent dans chaque sous-intervalle et appliquez le test du χ².
 
 *   **Test de Kolmogorov-Smirnov (KS)** :
-    *   **Adaptabilité :** Peut être appliqué à des séquences d'**entiers ou de nombres réels (à virgule flottante)**, à condition que l'on puisse définir une fonction de distribution cumulative théorique $F(x)$ à laquelle comparer la distribution empirique $F_n(x)$ de la séquence. Il est particulièrement adapté pour tester si une séquence suit une distribution continue spécifiée (comme l'uniforme sur [0, 1) pour les générateurs de nombres aléatoires).
-    *   **Principe :** Mesure la distance maximale entre la fonction de distribution cumulative empirique de la séquence et la fonction de distribution cumulative théorique.
-    *   **Méthode d'application :**
+    -   **Adaptabilité :** Peut être appliqué à des séquences d'**entiers ou de nombres réels (à virgule flottante)**, à condition que l'on puisse définir une fonction de distribution cumulative théorique $F(x)$ à laquelle comparer la distribution empirique $F_n(x)$ de la séquence. Il est particulièrement adapté pour tester si une séquence suit une distribution continue spécifiée (comme l'uniforme sur [0, 1) pour les générateurs de nombres aléatoires).
+    -   **Principe :** Mesure la distance maximale entre la fonction de distribution cumulative empirique de la séquence et la fonction de distribution cumulative théorique.
+    -   **Méthode d'application :**
         1.  **Spécifier la fonction de distribution théorique $F(x)$ :** Pour tester l'uniformité sur $[0, 1)$, $F(x) = x$ pour $0 \le x \le 1$, $F(x) = 0$ pour $x < 0$, et $F(x) = 1$ pour $x > 1$.
         2.  **Calculer la fonction de distribution empirique $F_n(x)$ :** Ordonnez la séquence de $n$ nombres $X_1, X_2, ..., X_n$ en $X_{(1)} \le X_{(2)} \le ... \le X_{(n)}$. Alors, $F_n(x) = \frac{i}{n}$ pour $X_{(i)} \le x < X_{(i+1)}$, avec $F_n(x) = 0$ pour $x < X_{(1)}$ et $F_n(x) = 1$ pour $x \ge X_{(n)}$.
         3.  **Calculer les statistiques KS :**

@@ -1,410 +1,584 @@
-""" Module des Tests """
-from math import factorial
-from abc import ABC , abstractmethod
+"""
+Module de tests statistiques pour l'évaluation de la qualité des générateurs de nombres aléatoires.
+Implémente les tests classiques de randomisation avec des améliorations de performance et de robustesse.
+"""
+
+from abc import ABC, abstractmethod
+from typing import Dict, List, Tuple, Union, Optional, Literal, Callable
+from functools import cache
+import numpy as np
+from numpy.typing import NDArray
+from scipy import stats
 from collections import Counter
 from itertools import permutations
-from functools import cache
-from typing import Literal , List,Dict,Tuple
-from numpy.typing import NDArray
-import numpy as np
-from scipy.stats import chi2 , kstwobign
+import time
+from TestsUtils import ( Array , group_low_frequence, stirling, _get_optimal_bins )
 
-# Les fonctions comunes à plusieurs tests
-@cache
-def stirling(n:int,k:int)->int:
-
-    """
-    Méthode pour calculer le nombre de stirling de deuxième espèce.
-    """
-    assert n >= 0 and k >= 0 , "n et k doivent être plus grand que 0."
-
-    if n == k:
-        return 1
-
-    elif n == 0 or k == 0:
-        return 0
-
-    return k * stirling(n - 1, k) + stirling(n - 1, k - 1)
-
-@cache
-def input_type(data:NDArray)->Literal["integers","decimals"]:
-    """
-        Méthode pour déterminer le type de données
-    """
-    return "integers" if isinstance(data[0],int) else "decimals"
 
 class Test(ABC):
-    """
-    Classe abstraite définissant un test d'hypothèse.
-    """
-    @abstractmethod
-    def __str__(self)->str:
-        """
-        Méthode  permettant  de récupérer le nom du test.
-        """
+    """Classe abstraite de base pour tous les tests statistiques."""
 
     @abstractmethod
-    def test(self, data:NDArray,alpha:float=0.05,info:bool=False) -> float|Dict:
-        """
-            teste  la séquence de nombres data
+    def __str__(self) -> str:
+        """Retourne le nom du test."""
 
-            Args:
-                data : suite de nombre à tester
-                alpha : seuil de signification (pourcentage d'erreur permit)
-                info : si True retourne des infos supplementaires sur le test effectué
-
-            Returns:
-                _ : si info retourne un Dictionnaire contenant la stat seuil et observée Kᵣ , Kₐ , p-valeur ,
+    @abstractmethod
+    def test(self,
+             data: NDArray,
+             alpha: float = 0.05,
+             info: bool = False) -> Union[Dict, Tuple[Dict]]:
         """
+        Exécute le test statistique sur les données.
+
+        Args:
+            data: Séquence de nombres à tester
+            alpha: Niveau de signification (défaut: 0.05)
+            info: Si True, retourne ( result , add_info )
+
+        Returns:
+            result  : un dictionnaire avec
+            statistic (float) : statistique observée/calculée
+            critical_value (float) : valeur critique de la statistique
+            p_value (float) : p_valeur
+            reject_null (bool) : on rejete ou pas l'hypothèse nulle
+            add_info (dict) : dictionnaire avec des information additionnelles sur le test
+        """
+
+
+    def _validate_input(self, data: NDArray) -> None:
+        """Valide les données d'entrée."""
+        if not isinstance(data, np.ndarray):
+            raise TypeError("Les données doivent être un numpy.ndarray")
+        if data.size == 0:
+            raise ValueError("Les données ne peuvent pas être vides")
+        if not np.all(np.isfinite(data)):
+            raise ValueError("Les données doivent contenir uniquement des nombres finis")
+
 
 class Chi2Test(Test):
     """
-        classe qui impléménte le test de χ²
-
-        Args:
-            k:nombre de bins pour la catégorisation des nombres de data
+        Test du Χ²
     """
-    def __init__(self, k:int=10):
-        """Initialises le test du chi² avec k bins
 
+    def __init__(self, k: int = 10, min_expected: float = 5.0, probabilities: Optional[NDArray] = None):
+        """
+        Initialise le test du Chi-carré.
 
         Args:
-            k (int, optional): nombre de bins pour la catégorisation des nombres de data. Defaults to 10.
+            k: Nombre de catégories (défaut: 10)
+            min_expected: Fréquence minimale attendue pour au moins 80% des catégories (défaut: 5.0)
+            probabilities: Probabilités théoriques pour chaque catégorie (défaut: None, distribution uniforme)
         """
         self.k = k
+        self.min_expected = min_expected
+        self.probabilities = probabilities
 
-    def __str__(self):
-        return "χ² Test "
-
-    @staticmethod
-    def group_low_frequencies(observed:NDArray, expected:NDArray, threshold=5)->Tuple[NDArray,NDArray]:
-        """
-            Regroupe les catégories adjacentes avec des fréquences attendues inférieures au seuil = threshold , s'il y'a des catégories faibles mais pas adjacentes  regroupe chacune d'elle avec sa voisine (directe) avec la plus petit effectif, et ce  jusqu'a ce que 80% des fréquences attendues soient supérieures au seuil
-        """
-        pass
-        return observed, expected
-
-    #group_low_frequencies n'est impléménté que dans cette classe car n'est utlisé que dans le cadre d'un test de chi2
-
-    @staticmethod
-    def chi_stat(observed:NDArray, expected:NDArray)->float:
-        """
-            Calcule la statistique du chi carré
-        """
-
-        observed, expected = Chi2Test.group_low_frequencies(observed, expected)
-        return np.sum((observed - expected) ** 2 / expected) , observed.size - 1
-
-    def test(self, data:NDArray,alpha:float=0.05,info:bool=False) -> float|Dict:
-
-        N = len(data)
-        if input_type(data) == "integers":
-            observed = np.bincount(data,minlength=np.max(data)+1)
-
-        #les fréquences observées pour k bins
-        observed , _ = np.histogram(data,bins=self.k)
-
-        # les fréquences attendues pour k bins
-        expected = np.full(self.k , N/self.k)
+    def __str__(self) -> str:
+        return f"Chi2_Test (k={self.k:.1f})"
 
 
-        #statistique du chi carré et degré de liberté
-        chi2_stat , df = Chi2Test.chi_stat(observed, expected)
+    def test(self,
+             data: NDArray,
+             alpha: float = 0.05,
+             info: bool = False) -> Union[Dict, Tuple[Dict]]:
 
-        #p-valeur
-        p_value = float(chi2.cdf(chi2_stat, df))
-        # Valeur/statistique critique
-        Ka = float(chi2.ppf(1-alpha,df))
+        self._validate_input(data)
 
-        return {
-            "K": chi2_stat,
-            "Ka": Ka,
-            "p_value": p_value,
-            "df": df
-        }if info else p_value
+        # Calculer les fréquences observées et attendues
+        observed, expected = _get_optimal_bins(data, k=self.k, probabilities=self.probabilities)
+
+        # Regrouper les catégories si nécessaire
+        observed, expected = group_low_frequence(observed, expected, seuil=self.min_expected)
+
+        # Calculer la statistique du test
+        chi2_stat = np.sum((observed - expected) ** 2 / expected)
+        df = len(observed) - 1
+
+        # Calculer la p-value et la valeur critique
+        p_value = 1 - stats.chi2.cdf(chi2_stat, df)
+        critical_value = stats.chi2.ppf(1 - alpha, df)
+
+        result = {'statistic': chi2_stat,
+                  'critical_value': critical_value,
+                  'p_value': p_value,
+                  'reject_null': p_value < alpha}
+
+        add_info = {
+                "bins": len(observed),
+                "df" : df,
+                "observed": observed,
+                "expected": expected
+            }
+
+        return result, add_info if info else result
 
 class GapTest(Test):
     """
-        classe qui représente le test de Gap
-
-        Args:
-            a : borne inférieur de l'intervalle pour le marquage
-            b : borne supérieure de l'intervalle pour le marquage
-            g : fonction de calcul du paramètre p de la loi gémetrique
+    Test du Gap.
     """
-    def __init__(self, a=0.1,b=0.3):
-        """Initialise le Gap Test avec une borne inférieur a et une borne supérieure b.
+
+    def __init__(self,
+                 alpha_gap: float = 0.1,
+                 beta_gap: float = 0.3,
+                 max_gap: int = 30):
+        """
+        Initialise le test du Gap.
 
         Args:
-            a (float, optional): Borne inférieure. Defaults to 0.1.
-            b (float, optional): Borne supérieure. Defaults to 0.3.
+            alpha_gap: Borne inférieure de l'intervalle (défaut: 0.1)
+            beta_gap: Borne supérieure de l'intervalle (défaut: 0.3)
+            max_gap: Longueur maximale de gap à considérer (défaut: 30)
         """
-        self.a = a
-        self.b = b
-        self.p = b-a #probabilité d'être entre a et b sous l'hypothèse d'une loi uniforme
+        if not 0 <= alpha_gap < beta_gap <= 1:
+            raise ValueError("Les bornes doivent satisfaire 0 <= alpha_gap < beta_gap <= 1")
 
-    def __str__(self):
-        return "Gap Test "
+        self.alpha_gap = alpha_gap
+        self.beta_gap = beta_gap
+        self.max_gap = max_gap
+        self.p = beta_gap - alpha_gap
 
+    def __str__(self) -> str:
+        return f"Gap Test ([{self.alpha_gap},{self.beta_gap}])"
 
-    def test(self, data:NDArray,alpha:float=0.05,info:bool=False) -> float|Dict:
+    @cache
+    def _calculate_gap_probabilities(self, max_gap: int) -> NDArray:
+        """
+        Calcule les probabilités théoriques pour chaque longueur de gap.
+        """
+        q = 1 - self.p
+        probs = np.zeros(max_gap + 1)
+        probs[:-1] = self.p * (q ** np.arange(max_gap))
+        probs[-1] = q ** max_gap
+        return probs
 
-        #selection des indices des nombres à marquer
-        mark = (data >= self.a) & (data <= self.b)
-        indices = np.where(mark)[0]
+    def test(self,
+             data: NDArray,
+             alpha: float = 0.05,
+             info: bool = False) -> Union[float, Dict, TestResult]:
+        """
+        Exécute le test du Gap.
+        """
+        self._validate_input(data)
 
-        if not indices.size: # il n'y a  pas de gaps
-            return {"K":0,"Ka":0,"p_value":1,"df":0} if info else 1
+        # Vérifier que les données sont dans [0, 1]
+        if np.min(data) < 0 or np.max(data) > 1:
+            raise ValueError("Les données doivent être dans l'intervalle [0, 1]")
 
-        # Calculer les gaps entre les indices
+        # Identifier les nombres dans l'intervalle [alpha_gap, beta_gap]
+        marks = (data >= self.alpha_gap) & (data <= self.beta_gap)
+        indices = np.where(marks)[0]
+
+        if len(indices) <= 1:
+            return TestResult(
+                statistic=0,
+                critical_value=0,
+                p_value=1.0,
+                df=0,
+                reject_null=False,
+                add_info={"message": "Pas assez de marques pour calculer des gaps"}
+            )
+
+        # Calculer les gaps
         gaps = np.diff(indices) - 1
-        max_gap = np.max(gaps)
+        max_observed_gap = np.max(gaps)
+        # limite maximal de longueur de gap
+        t = min(max_observed_gap, self.max_gap)
 
-        observed =  np.bincount(gaps , minlength=max_gap + 1)
+        # Compter les occurrences de chaque longueur de gap
+        gap_counts = np.zeros(t + 1)
+        for gap in gaps:
+            if gap >= t:
+                gap_counts[t] += 1
+            else:
+                gap_counts[gap] += 1
 
-        # calcul des fréquencesattend ues pour chaque gap
+        # Calculer les probabilités théoriques
+        expected_probs = self._calculate_gap_probabilities(t)
+        expected_counts = len(gaps) * expected_probs
 
-        expected = (gaps.size * self.p) * ( (1 - self.p) ** np.arange(max_gap + 1))
+        # Appliquer le test du chi-carré
+        chi2_stat = np.sum((gap_counts - expected_counts) ** 2 / expected_counts)
+        df = t
 
-        # statistique du Chi carré , et déré de liberté
-        chi2_stat  , df = Chi2Test.chi_stat(observed, expected)
+        # Calculer la p-value et la valeur critique
+        p_value = 1 - stats.chi2.cdf(chi2_stat, df)
+        critical_value = stats.chi2.ppf(1 - alpha, df)
 
-        #p-valeur
-        p_value = float(chi2.cdf(chi2_stat, df))
+        result = TestResult(
+            statistic=chi2_stat,
+            critical_value=critical_value,
+            p_value=p_value,
+            df=df,
+            reject_null=p_value < alpha,
+            add_info={
+                "gap_counts": gap_counts,
+                "expected_counts": expected_counts,
+                "max_gap": t
+            }
+        )
 
-        # Valeur/statistique critique
-        Ka = float(chi2.ppf(1-alpha,df))
-
-        return {
-            "K": chi2_stat,
-            "Ka": Ka,
-            "p_value": p_value,
-            "df": df
-        }if info else p_value
+        return result.to_dict() if info else p_value
 
 class PokerTest(Test):
-    def __init__(self, n=5):  # nombre de cartes par joue
-        self.n = n
+    """
+    Test du Poker amélioré avec gestion optimisée des motifs.
+    """
 
-    def __str__(self):
-        return f"Test du Poker avec {self.n} cartes"
+    def __init__(self, group_size: int = 5):
+        """
+        Initialise le test du Poker.
+
+        Args:
+            group_size: Taille des groupes à analyser (défaut: 5)
+        """
+        if group_size < 2:
+            raise ValueError("La taille des groupes doit être au moins 2")
+        self.group_size = group_size
+
+    def __str__(self) -> str:
+        return f"Poker Test(n={self.group_size})"
 
     @cache
-    def test(self, data:NDArray, alpha:float=0.05, info:bool=False) -> float|Dict:
-        # Vérifie si les données contiennent au moins self.n éléments uniques
-        unique = np.unique(data)
-        if len(unique) < 5:
-            return {"K": 0, "Ka": 0, "p_value": 1.0, "df": 0} if info else 1.0
+    def _get_pattern_type(self, group: NDArray) -> str:
+        """
+        Détermine le type de motif pour un groupe.
+        """
+        counts = Counter(group)
+        values = list(counts.values())
 
-        # Générer toutes les combinaisons de 5 cartes
-        from itertools import permutations
-        all_permutations = List(permutations(unique, self.n))
+        if len(counts) == self.group_size:
+            return "all_different"
+        elif len(counts) == self.group_size - 1:
+            return "one_pair"
+        elif len(counts) == self.group_size - 2:
+            if 3 in values:
+                return "three_of_a_kind"
+            else:
+                return "two_pairs"
+        elif len(counts) == 2:
+            if 4 in values:
+                return "four_of_a_kind"
+            else:
+                return "full_house"
+        else:
+            return "five_of_a_kind"
 
-        # Calculer la fréquence des runs
-        run_counts = [0] * (len(all_permutations) + 1)
-        for perm in all_permutations:
-            try:
-                # Trouver les positions consécutives
-                indices = []
-                current = perm[0]
-                count = 1
-                for i in range(1, len(perm)):
-                    if data[i] == current and i - count == perm[i]:
-                        indices.append(i)
-                        count += 1
-                    else:
-                        break
-                gap = max(indices) - min(indices) + 1
+    def test(self,
+             data: NDArray,
+             alpha: float = 0.05,
+             info: bool = False) -> Union[float, Dict, TestResult]:
+        """
+        Exécute le test du Poker.
+        """
+        self._validate_input(data)
 
-                # Si les cartes ne sont pas dans l'ordre croissant, ajuster la position
-                if len(perm) != sorted(perm):
-                    gap -= 1
+        # Vérifier qu'il y a assez de données
+        if len(data) < self.group_size:
+            raise ValueError(f"Pas assez de données pour former des groupes de taille {self.group_size}")
 
-                run_counts[gap] += 1
-            except:
-                pass
+        # Diviser les données en groupes
+        num_groups = len(data) // self.group_size
+        groups = [data[i * self.group_size:(i + 1) * self.group_size]
+                 for i in range(num_groups)]
 
-        observed = np.array(run_counts[1:])  # Omettre le zéro index
-        total = data.size
+        # Déterminer le type de motif pour chaque groupe
+        pattern_types = [self._get_pattern_type(group) for group in groups]
 
-        # Calcul des fréquences attendues
-        expected = (total * self.n) / len(all_permutations)
+        # Compter les occurrences de chaque motif
+        pattern_counts = Counter(pattern_types)
 
-        # Statistique du Chi carré et degré de liberté
-        chi2_stat, df = Chi2Test.chi_stat(observed, expected)
+        # Calculer les probabilités théoriques
+        d = len(np.unique(data))  # Nombre de valeurs distinctes possibles
+        if d < self.group_size:
+            raise ValueError(f"Pas assez de valeurs distinctes ({d}) pour la taille de groupe ({self.group_size})")
 
-        # Calcul p-valeur et statistique critique
-        p_value = float(chi2.cdf(chi2_stat, df))
-        Ka = float(chi2.ppf(1 - alpha, df))
+        # Calculer les probabilités théoriques pour chaque motif
+        theoretical_probs = {
+            "all_different": (d * factorial(d-1)) / (d ** self.group_size),
+            "one_pair": (self.group_size * (self.group_size-1) * d * factorial(d-2)) / (2 * d ** self.group_size),
+            "two_pairs": (self.group_size * (self.group_size-1) * (self.group_size-2) * (self.group_size-3) * d * factorial(d-3)) / (4 * d ** self.group_size),
+            "three_of_a_kind": (self.group_size * (self.group_size-1) * (self.group_size-2) * d * factorial(d-2)) / (6 * d ** self.group_size),
+            "full_house": (self.group_size * (self.group_size-1) * (self.group_size-2) * d * (d-1)) / (6 * d ** self.group_size),
+            "four_of_a_kind": (self.group_size * (self.group_size-1) * (self.group_size-2) * (self.group_size-3) * d) / (24 * d ** self.group_size),
+            "five_of_a_kind": 1 / (d ** (self.group_size-1))
+        }
 
-        return {
-            "K": chi2_stat,
-            "Ka": Ka,
-            "p_value": p_value,
-            "df": df
-        } if info else p_value
+        # Calculer les fréquences attendues
+        expected_counts = {pattern: num_groups * prob
+                         for pattern, prob in theoretical_probs.items()}
+
+        # Appliquer le test du chi-carré
+        chi2_stat = sum((pattern_counts.get(pattern, 0) - expected_counts[pattern]) ** 2
+                       / expected_counts[pattern]
+                       for pattern in theoretical_probs.keys())
+        df = len(theoretical_probs) - 1
+
+        # Calculer la p-value et la valeur critique
+        p_value = 1 - stats.chi2.cdf(chi2_stat, df)
+        critical_value = stats.chi2.ppf(1 - alpha, df)
+
+        result = TestResult(
+            statistic=chi2_stat,
+            critical_value=critical_value,
+            p_value=p_value,
+            df=df,
+            reject_null=p_value < alpha,
+            add_info={
+                "pattern_counts": dict(pattern_counts),
+                "expected_counts": expected_counts,
+                "theoretical_probs": theoretical_probs
+            }
+        )
+
+        return result.to_dict() if info else p_value
 
 class CouponCollectorTest(Test):
-    def __init__(self, probabilities=None, n_samples=1000):
-        if probabilities is None:
-            self.p = np.array([1/6] * 6)
-        else:
-            self.p = probabilities
-        self.n_samples = n_samples
+    """
+    Test du Collectionneur de Coupons amélioré.
+    """
 
-    def __str__(self):
-        return f"Test du Collectionneur de {len(self.p)} coupons"
+    def __init__(self, d: Optional[int] = None):
+        """
+        Initialise le test du Collectionneur de Coupons.
 
-    @cache
-    def test(self, data:NDArray, alpha:float=0.05, info:bool=False) -> float|Dict:
-        # Calculer les effectifs observés pour chaque coupon
-        observed = np.bincount(data, minlength=len(self.p))
+        Args:
+            d: Nombre de valeurs distinctes possibles (si None, utilise le nombre de valeurs uniques)
+        """
+        self.d = d
 
-        # Calculer les fréquences observées
-        freq_observed = observed / data.size
-
-        # Calculer les fréquences attendues (selon la Loi des nombres grands)
-        freq_expected = self.p
-
-        # Calculer les statistiques de Kolmogorov-Smirnov
-        D_stat = np.max(np.abs(freq_observed - freq_expected))
-
-        # Calculer la p-valeur et la statistique critique
-        n = data.size
-        D_statistic = D_stat * sqrt(n)
-        p_value = 2 * (1 - stats.kstwobign.cdf(D_statistic))
-        Ka = stats.kstwobign.ppf(1 - alpha)
-
-        return {
-            "D": D_statistic,
-            "Ka": Ka,
-            "p_value": p_value
-        } if info else p_value
-
-class PermutationTest(Test):
-    def __init__(self, data1:NDArray, data2:NDArray, alpha=0.05):
-        self.data1 = data1
-        self.data2 = data2
-        self.n_permutations = 1000
-
-    def __str__(self):
-        return "Test des Permutations"
+    def __str__(self) -> str:
+        return f"Test du Collectionneur de Coupons (d={self.d})"
 
     @cache
-    def test(self, data:NDArray, alpha:float=0.05, info:bool=False) -> float|Dict:
-        # Concaténer les données
-        combined = np.concatenate([self.data1, self.data2])
-        n = len(combined)
+    def _stirling(self, n: int, k: int) -> int:
+        """
+        Calcule le nombre de Stirling de deuxième espèce.
+        """
+        if n < 0 or k < 0:
+            raise ValueError("n et k doivent être des entiers positifs")
 
-        # Générer toutes les permutations possibles
-        from itertools import permutations
-        perms = permutations(combined)
+        if n == k:
+            return 1
+        elif n == 0 or k == 0:
+            return 0
 
-        # Calculer la statistiche test pour chaque permutation
-        statistic_threshold = None
-        for perm in perms:
-            t_statistic = compute_test_statistic(perm, self.data1.size)
-            if statistic_threshold is None or t_statistic > statistic_threshold:
-                statistic_threshold = t_statistic
+        return k * self._stirling(n - 1, k) + self._stirling(n - 1, k - 1)
 
-        # Calculer les statistiques pour les données réelles
-        observed_statistic = compute_test_statistic(data, self.data1.size)
+    def test(self,
+             data: NDArray,
+             alpha: float = 0.05,
+             info: bool = False) -> Union[float, Dict, TestResult]:
+        """
+        Exécute le test du Collectionneur de Coupons.
+        """
+        self._validate_input(data)
 
-        # Comparer avec le seuil critique
-        if observed_statistic >= statistic_threshold:
-            return {"K": observed_statistic, "Ka": statistic_threshold, "p_value": 0.05} if info else True
-        else:
-            return {"K": observed_statistic, "Ka": statistic_threshold, "p_value": p_value} if info else False
+        # Vérifier que les données sont des entiers
+        if not np.issubdtype(data.dtype, np.integer):
+            raise ValueError("Les données doivent être des entiers")
 
-def group_low_frequencies(data, k):
-    # Split data into non-overlapping groups of size k
-    n = len(data)
-    if k > n:
-        return []
-    groups = [data[i:i+k] for i in range(0, n, k)]
+        # Déterminer le nombre de valeurs distinctes
+        d = self.d if self.d is not None else len(np.unique(data))
 
-    # Function to get order pattern ignoring duplicates
-    def get_order_pattern(group):
-        sorted_group = sorted(group)
-        unique_sorted = List(sorted(set(sorted_group)))
-        rank = {v: i+1 for i, v in enumerate(unique_sorted)}
-        return tuple(rank[val] for val in group)
+        # Calculer les longueurs des segments
+        segments = []
+        current_segment = set()
+        segment_length = 0
 
-    # Get all possible permutation patterns (k!)
-    all_patterns = set(permutations(range(1, k+1)))
+        for value in data:
+            current_segment.add(value)
+            segment_length += 1
 
-    # Count observed frequencies
-    pattern_counts = Counter()
-    for g in groups:
-        pattern = get_order_pattern(g)
-        if len(pattern) == k:  # Ensure the group is of size k
-            pattern_counts[pattern] += 1
+            if len(current_segment) == d:
+                segments.append(segment_length)
+                current_segment = set()
+                segment_length = 0
 
-    # Calculate expected counts under uniform distribution
-    total_groups = len(groups)
-    expected = {pattern: (total_groups / factorial(k)) for pattern in all_patterns}
+        if not segments:
+            return TestResult(
+                statistic=0,
+                critical_value=0,
+                p_value=1.0,
+                df=0,
+                reject_null=False,
+                add_info={"message": "Pas de segments complets trouvés"}
+            )
 
-    return pattern_counts, expected
+        # Calculer les probabilités théoriques
+        max_length = max(segments)
+        probs = np.zeros(max_length + 1)
 
-class KSTest(Test):
+        for r in range(d, max_length + 1):
+            probs[r] = (factorial(d) / (d ** r)) * self._stirling(r - 1, d - 1)
+
+        # Compter les occurrences de chaque longueur
+        length_counts = np.zeros(max_length + 1)
+        for length in segments:
+            if length <= max_length:
+                length_counts[length] += 1
+
+        # Appliquer le test du chi-carré
+        expected_counts = len(segments) * probs
+        chi2_stat = np.sum((length_counts - expected_counts) ** 2 / expected_counts)
+        df = max_length - d + 1
+
+        # Calculer la p-value et la valeur critique
+        p_value = 1 - stats.chi2.cdf(chi2_stat, df)
+        critical_value = stats.chi2.ppf(1 - alpha, df)
+
+        result = TestResult(
+            statistic=chi2_stat,
+            critical_value=critical_value,
+            p_value=p_value,
+            df=df,
+            reject_null=p_value < alpha,
+            add_info={
+                "segments": segments,
+                "length_counts": length_counts,
+                "expected_counts": expected_counts,
+                "d": d
+            }
+        )
+
+        return result.to_dict() if info else p_value
+
+class KolmogorovSmirnovTest(Test):
+    """
+    Test de Kolmogorov-Smirnov pour comparer la distribution empirique
+    à une distribution uniforme.
+    """
+
     def __init__(self):
+        """Initialise le test de Kolmogorov-Smirnov."""
         pass
 
-    def __str__(self):
-        return "Test de Kolmogorov-Smirnov"
+    def __str__(self) -> str:
+        return "Kolmogorov-Smirnov Test"
 
-    def test(self, data: NDArray, alpha: float = 0.05, info: bool = False) -> float | Dict:
-        n = len(data)
+    def test(self,
+             data: NDArray,
+             alpha: float = 0.05,
+             info: bool = False) -> Union[Dict]:
+        """
+        Exécute le test de Kolmogorov-Smirnov.
+
+        Args:
+            data: Séquence de nombres à tester (doit être dans [0,1])
+            alpha: Niveau de signification
+            info: Si True, retourne des informations détaillées
+
+        Returns:
+            p-value ou TestResult selon le paramètre info
+        """
+        self._validate_input(data)
+
+        # Vérifier que les données sont dans [0, 1]
+        if np.min(data) < 0 or np.max(data) > 1:
+            raise ValueError("Les données doivent être dans l'intervalle [0, 1]")
+
+        # Trier les données
         sorted_data = np.sort(data)
-        empirical_cdf = np.arange(1, n+1) / n
+        n = len(data)
 
-        theoretical_cdf = sorted_data
+        # Calculer la fonction de répartition empirique
+        i = np.arange(1, n + 1)
+        Fn = i / n
 
-        D_plus = np.max(empirical_cdf - theoretical_cdf)
-        D_minus = np.max(theoretical_cdf - (np.arange(n) / n))
-        D_stat = max(D_plus, D_minus)
+        # Calculer les différences maximales
+        D_plus = np.max(Fn - sorted_data)
+        D_minus = np.max(sorted_data - (i - 1) / n)
+        D = max(D_plus, D_minus)
 
-        p_value = 2 * (1 - kstwobign.cdf(D_stat * np.sqrt(n)))
-        Ka = kstwobign.ppf(1 - alpha)
+        # Calculer la statistique de test
+        ks_stat = D * np.sqrt(n)
 
-        return {
-            "D": D_stat,
-            "Ka": Ka,
-            "p_value": p_value
-        } if info else p_value
+        # Calculer la p-value
+        p_value = 1 - stats.kstwobign.cdf(ks_stat)
 
-class MaxTest(Test):
-    def __init__(self, t=3):
+        # Calculer la valeur critique
+        critical_value = stats.kstwobign.ppf(1 - alpha)
+
+        result = TestResult(
+            statistic=ks_stat,
+            critical_value=critical_value,
+            p_value=p_value,
+            df=n,  # Le nombre de degrés de liberté est égal à la taille de l'échantillon
+            reject_null=p_value < alpha,
+            add_info={
+                "D_plus": D_plus,
+                "D_minus": D_minus,
+                "D": D,
+                "n": n
+            }
+        )
+
+        return result.to_dict() if info else p_value
+
+class MaximumTest(Test):
+    """
+    Test des maximums pour détecter les tendances dans les séquences de nombres aléatoires.
+    """
+
+    def __init__(self, t: int = 5):
+        """
+        Initialise le test des maximums.
+
+        Args:
+            t: Nombre de groupes à considérer (défaut: 5)
+        """
+        if t < 2:
+            raise ValueError("t doit être au moins 2")
         self.t = t
 
-    def __str__(self):
-        return f"Test des Maximums avec sous-groupes de taille {self.t}"
+    def __str__(self) -> str:
+        return f"Maximum Test (t={self.t})"
 
-    def test(self, data: NDArray, alpha: float = 0.05, info: bool = False) -> float | Dict:
-        n = len(data) // self.t
-        max_values = [max(data[i*self.t:(i+1)*self.t]) for i in range(n)]
+    def test(self,
+             data: NDArray,
+             alpha: float = 0.05,
+             info: bool = False) -> Union[float, Dict, TestResult]:
+        """
+        Exécute le test des maximums.
 
-        empirical_cdf = np.arange(1, n+1) / n
-        theoretical_cdf = np.sort(max_values) ** self.t
+        Args:
+            data: Séquence de nombres à tester
+            alpha: Niveau de signification
+            info: Si True, retourne des informations détaillées
 
-        D_plus = np.max(empirical_cdf - theoretical_cdf)
-        D_minus = np.max(theoretical_cdf - (np.arange(n) / n))
-        D_stat = max(D_plus, D_minus)
+        Returns:
+            p-value ou TestResult selon le paramètre info
+        """
+        self._validate_input(data)
 
-        p_value = 2 * (1 - kstwobign.cdf(D_stat * np.sqrt(n)))
-        Ka = kstwobign.ppf(1 - alpha)
+        n = len(data)
+        if n < self.t:
+            raise ValueError(f"La taille de l'échantillon ({n}) doit être au moins égale à t ({self.t})")
 
-        return {
-            "D": D_stat,
-            "Ka": Ka,
-            "p_value": p_value
-        } if info else p_value
+        # Diviser les données en t groupes
+        group_size = n // self.t
+        groups = [data[i:i + group_size] for i in range(0, n, group_size)]
 
-# Example usage:
-S = [2,5,5,6,9,5,6,9,8,4,2,8,7,0,7,3,0,9,4,0,2,4,0,3,2,1,0,6]
-k = 3
-pattern_counts, expecteds = group_low_frequencies(S, k)
+        # Calculer les maximums de chaque groupe
+        max_values = np.array([np.max(group) for group in groups])
 
-# Print results
-print("Observed pattern frequencies:", pattern_counts)
-print("\nExpected pattern frequencies under uniform distribution:", expecteds)
+        # Calculer la statistique de test
+        # On utilise le test de tendance de Mann-Kendall
+        stat, p_value = stats.kendalltau(np.arange(self.t), max_values)
+
+        # Calculer la valeur critique
+        critical_value = stats.norm.ppf(1 - alpha/2)
+
+        result = TestResult(
+            statistic=stat,
+            critical_value=critical_value,
+            p_value=p_value,
+            df=self.t - 1,
+            reject_null=p_value < alpha,
+            add_info={
+                "max_values": max_values,
+                "group_size": group_size,
+                "t": self.t
+            }
+        )
+
+        return result.to_dict() if info else p_value
