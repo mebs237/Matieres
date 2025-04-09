@@ -12,12 +12,7 @@ Rg , Rw = 0.27 , 0.4
 Num = Union[float,float64, float16 , float32 ]
 vector = NDArray[Num]
 
-Es = array([
-        0,
-        0.1,
-        0.3,
-        0.4
-          ])
+Es = [ 0, 0.1, 0.3, 0.4]
 
 def equation(t, v, E=0.00):
     """
@@ -25,8 +20,8 @@ def equation(t, v, E=0.00):
 
     Args:
         t: Temps (non utilisé mais requis par solve_ivp)
-        v: Vecteur d'état [g, w] où g est la biomasse d'herbe et w est la biomasse ligneuse
-        E: Paramètre d'exploitation ou environnemental
+        v: Vecteur d'état [g, w] defni dans le projet
+        E: rapport de proportionnalité avec le bétail
 
     Returns:
         Vecteur des dérivées [dg/dt, dw/dt]
@@ -43,7 +38,7 @@ def equation(t, v, E=0.00):
 
 def Pg(x:float, E:float) -> float:
     """
-    Permet de représenter la fonction polynôme g avec comme paramètre E
+    polynôme g dont une racine g* forme un équilibre avec un w* correspondant
     """
     if x == 0 and E == 0:
         return 0.4
@@ -65,7 +60,7 @@ def delta_e(E:float) -> float:
 
 def dubble_u(g:float , E:float)->float:
     """
-    retourne la valeur de w en fonction de la valeur de g correspondante et E (E)
+    retourne la valeur de w en fonction de g tel que g , f(g) est un équilibre
     """
     if g == 0 and E == 0:
         return 1
