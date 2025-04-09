@@ -1,3 +1,4 @@
+
 """
 Module pour la partie implementation du Tp
 """
@@ -5,6 +6,7 @@ from typing import Callable
 from numpy import ndarray , array , where , float64
 from pandas import read_csv
 from scipy.linalg import solve
+
 
 
 # import du fichier de données
@@ -41,6 +43,7 @@ def solution(x:ndarray,y:ndarray)->tuple[ndarray , Callable[[ndarray],ndarray]]:
     """
         retourne l'ensemble des solutions de la procédure des moindres carrés u0 + ker(A)
 
+
         Args:
             x : les élongations
             y : la réponse du ressort
@@ -49,6 +52,7 @@ def solution(x:ndarray,y:ndarray)->tuple[ndarray , Callable[[ndarray],ndarray]]:
         ---
             u₀ : solution particulière ( ε₀ , k₀ )
             gen : fonction génératrice d'autre solutions
+
     """
 
     m = matrice(x)
@@ -58,11 +62,13 @@ def solution(x:ndarray,y:ndarray)->tuple[ndarray , Callable[[ndarray],ndarray]]:
     if inj :
         u0 = solve(A , y)
 
+
         return u0 , lambda _ :u0
 
     # ker(A) = R² : les solutions sont 0 + Ker(A)
     if l is None :
         u0 = array([0,0]) # orth(ker(A)) = {0}
+
 
         return u0 , lambda t1 , t2 : array([t1,t2])
     else :
