@@ -1,0 +1,3 @@
+concernant le système de score , je pensais au match sportif où on donne 1 au meilleur et 0 à l'autre . plus précisément :
+1 . puisque la p_valeur c'est la probabilté de rejeter l'hypothese nulle on devrait avoir : 1 pour le genérateur avec la plus petite p_valeur et 0 pour l'ajuster
+2. pour l'écart entre statistique observée et statistique critique : 1 pour celui qui a le plus petit ecart et 0 pour l'autre
