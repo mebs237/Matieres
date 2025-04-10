@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from Equilibres_0 import (
+from Equilibres import (
     equation, Pg, delta_e, dubble_u, equilibres,
     Jac, class_equilibrium, ulim, cvg, phi,
     intercept_g, separatrix_points, plot_separatrix
