@@ -176,7 +176,7 @@ def solution(x:ndarray,y:ndarray,contr:bool = True, fcont:Callable[[ndarray] , b
         return _handle_vector_space_solution(X, f, l, contr, fcont, info)
 
 res = solution(X,-f,info=True)
-epsilon , k = res["u0"]
+k , epsilon = res["u0"]
 case = res["case"]
 print("-"*20)
-print(f"nous sommes dans le cas : {case}  \nε = {epsilon}\nk={k}")
+print(f"nous sommes dans le cas :{case} \nk={k} \nε = {epsilon}")
