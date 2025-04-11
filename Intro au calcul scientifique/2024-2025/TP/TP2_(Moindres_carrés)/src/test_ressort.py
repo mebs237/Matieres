@@ -1,102 +1,94 @@
-import unittest
+import pytest
 import numpy as np
-from ressort import matrice, solution, _handle_unique_solution, _handle_multiple_solutions, _handle_vector_space_solution
+from ressort import matrice, solution
 
-class TestRessort(unittest.TestCase):
+@pytest.mark.parametrize("x,expected_shape", [
+    (np.array([1, 2, 3]), (3, 2)),  # Matrice A avec 3 lignes et 2 colonnes
+    (np.array([0, 0, 0]), (3, 2)),  # Même si x est nul, A doit avoir la bonne forme
+    (np.array([1]), (1, 2))         # Cas avec un seul élément
+])
+def test_matrice_shape(x, expected_shape):
+    """Test de la forme de la matrice A générée"""
+    result = matrice(x)
+    assert result['A'].shape == expected_shape
 
-    def test_matrice_injective(self):
-        """
-        Cas où la matrice est injective
-        """
-        x = np.array([1, 2, 3])
-        result = matrice(x)
-        self.assertTrue(result['inj'])
-        self.assertIsNotNone(result['A'])
-        self.assertIsNotNone(result['l'])
+@pytest.mark.parametrize("x,expected_l", [
+    (np.array([1, 0, 0]), 1),  # l doit être égal au premier x non nul
+    (np.array([0, 2, 0]), 4),  # l doit être égal au premier x non nul
+    (np.array([0, 0, 0]), None)  # Aucun x non nul, l doit être None
+])
+def test_matrice_l_value(x, expected_l):
+    """Test de la valeur de l dans le dictionnaire retourné par matrice"""
+    result = matrice(x)
+    assert result['l'] == expected_l
 
-    def test_matrice_non_injective(self):
-        """Cas où la matrice n'est pas injective"""
-        x = np.array([0, 0, 0])
-        result = matrice(x)
-        self.assertFalse(result['inj'])
-        self.assertIsNotNone(result['A'])
-        self.assertIsNone(result['l'])
+def test_solution_unique_entry_shape():
+    """Test du cas unique (ker(A) = {0})"""
+    x = np.array([1, 2, 3])
+    y = np.array([2, 4, 6])
+    result = solution(x, y, info=True)
+    assert result["case"] == "unique"
+    assert result["entry_shape"] is None
+    assert np.allclose(result["u0"], np.array([2, 0]))  # Vérifie la solution particulière
 
-    def test_solution_unique(self):
-        """ Cas où la solution est unique """
-        data = np.array([[1, 2], [2, 4], [3, 6]])
-        y = np.array([1, 2, 3])
-        sol = solution(data, y)
-        self.assertIsInstance(sol, np.ndarray)
-        self.assertEqual(sol.shape, (2,))
+def test_solution_multiple_entry_shape():
+    """Test du cas multiple (ker(A) = R²)"""
+    x = np.array([0, 0, 0])
+    y = np.array([0, 0, 0])
+    result = solution(x, y, info=True)
+    assert result["case"] == "all_space"
+    assert result["entry_shape"] == (2,)
+    t = np.array([1, 2])
+    generated = result["gen"](t)
+    assert np.array_equal(generated, np.array([1, 2]))
 
-    def test_solution_multiple(self):
-        """ Cas où il y a plusieurs solutions """
-        data = np.array([[0, 0], [0, 0], [0, 0]])
-        y = np.array([0, 0, 0])
-        sol = solution(data, y)
-        self.assertTrue(callable(sol))
-        result = sol(1, 2)
-        self.assertEqual(result.tolist(), [1, 2])
+def test_solution_vector_space_entry_shape():
+    """Test du cas espace vectoriel (ker(A) = span((-λ, 1)))"""
+    x = np.array([1, 0, -1, 0, 1])
+    y = np.array([2, -2, 0, 8, 11])
+    result = solution(x, y, info=True)
+    assert result["case"] == "vector_space"
+    assert result["entry_shape"] == ()
+    t = 2
+    generated = result["gen"](t)
+    assert generated.shape == (2,)
+    assert np.allclose(generated, result["u0"] + t * np.array([-1, 1]))
 
-    def test_solution_span(self):
-        """ Cas où les solutions sont dans un espace vectoriel """
-        data = np.array([[1, 2], [2, 4], [0, 0]])
-        y = np.array([1, 2, 0])
-        sol = solution(data, y)
-        self.assertTrue(callable(sol))
-        t = 2
-        result = sol(t)
-        self.assertEqual(result.shape, (2,))
+@pytest.mark.parametrize("x,y,fcont,expected_error", [
+    (np.array([1, 2, 3]), np.array([2, 4, 6]), lambda u: u[0] < 0, ValueError),  # Contrainte non respectée
+    (np.array([1, 2, 3]), np.array([2, 4, 6]), lambda u: u[1] < 0, ValueError)   # Contrainte non respectée
+])
+def test_solution_constraints_exceptions(x, y, fcont, expected_error):
+    """Test des exceptions levées pour des contraintes non respectées """
+    with pytest.raises(expected_error):
+        solution(x, y, contr=True, fcont=fcont, info=True)
 
-    def test_handle_unique_solution(self):
-        """Test de la fonction _handle_unique_solution"""
-        A = np.array([[1, 2], [2, 4], [3, 6]])
-        y = np.array([1, 2, 3])
-        result = _handle_unique_solution(A, y, contr=True, fcont=lambda u: u[0]>0 and u[1]>=0, info=True)
-        self.assertIsInstance(result, dict)
-        self.assertIn('u0', result)
-        self.assertIn('gen', result)
-        self.assertTrue(result['unique'])
-        self.assertEqual(result['case'], 0)
+def test_solution_no_constraints():
+    """Test sans contraintes (contr=False)"""
+    x = np.array([1, 2, 3])
+    y = np.array([2, 4, 6])
+    result = solution(x, y, contr=False, info=True)
+    assert result["case"] == "unique"
+    assert result["entry_shape"] is None
+    assert np.allclose(result["u0"], np.array([2, 0]))  # Vérifie la solution particulière
 
-    def test_handle_multiple_solutions(self):
-        """Test de la fonction _handle_multiple_solutions"""
-        result = _handle_multiple_solutions(contr=True, fcont=lambda u: u[0]>0 and u[1]>=0, info=True)
-        self.assertIsInstance(result, dict)
-        self.assertIn('u0', result)
-        self.assertIn('gen', result)
-        self.assertFalse(result['unique'])
-        self.assertEqual(result['case'], 2)
+@pytest.mark.parametrize("x,y,expected_error", [
+    (np.array([1, 2, 3]), np.array([1, 2]), ValueError),  # Dimensions incompatibles
+    (np.array([5]), np.array([]), ValueError),  # Tableaux vides
+    (np.array([1, 2, 3]), None, AttributeError)  # y est None
+])
+def test_solution_invalid_inputs(x, y, expected_error):
+    """Test des cas limites pour les entrées invalides"""
+    with pytest.raises(expected_error):
+        solution(x, y)
 
-    def test_handle_vector_space_solution(self):
-        """Test de la fonction _handle_vector_space_solution"""
-        X = np.array([1, 2, 3])
-        f = np.array([1, 2, 3])
-        l = 1.0
-        result = _handle_vector_space_solution(X, f, l, contr=True, fcont=lambda u: u[0]>0 and u[1]>=0, info=True)
-        self.assertIsInstance(result, dict)
-        self.assertIn('u0', result)
-        self.assertIn('gen', result)
-        self.assertFalse(result['unique'])
-        self.assertEqual(result['case'], 1)
-
-    def test_solution_constraints(self):
-        """Test des contraintes sur les solutions"""
-        data = np.array([[1, 2], [2, 4], [3, 6]])
-        y = np.array([1, 2, 3])
-
-        # Test avec contraintes valides
-        sol = solution(data, y, contr=True, fcont=lambda u: u[0]>0 and u[1]>=0)
-        self.assertIsNotNone(sol)
-
-        # Test avec contraintes impossibles
-        with self.assertRaises(ValueError):
-            solution(data, y, contr=True, fcont=lambda u: u[0]<0)
-
-        # Test sans contraintes
-        sol = solution(data, y, contr=False, fcont=lambda u: False)
-        self.assertIsNotNone(sol)
+def test_solution_generator_invalid_t():
+    """Test des exceptions levées par le générateur pour des t invalides"""
+    x = np.array([0, 0, 0])
+    y = np.array([0, 0, 0])
+    result = solution(x, y, info=True)
+    with pytest.raises(ValueError , match= "t doit être une liste de deux éléments"):
+        result["gen"](2)  # t qui viole les contraintes
 
 if __name__ == '__main__':
-    unittest.main()
+    pytest.main([__file__])
