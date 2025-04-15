@@ -1,0 +1,13 @@
+MANIFEST.in
+README.txt
+setup.py
+src/Preuve_TP_moindres_carres.pdf
+src/ressort.py
+src/test_ressort.py
+src/TP.egg-info/SOURCES.txt
+src/TP.egg-info/dependency_links.txt
+src/TP.egg-info/top_level.txt
+src/TP2.egg-info/PKG-INFO
+src/TP2.egg-info/SOURCES.txt
+src/TP2.egg-info/dependency_links.txt
+src/TP2.egg-info/top_level.txt

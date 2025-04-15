@@ -1,3 +1,7 @@
+"""
+    Module pour l'impléméntation des générateurs de nombres aléatoires
+"""
+
 from abc import ABC , abstractmethod
 from hashlib import sha256
 from time import time_ns
@@ -9,7 +13,7 @@ from numpy.random import random
 
 
 
-class Generator(ABC):
+class Generators(ABC):
     """
     Classe abstraite définissant ce qu'est un générateur.
     """
@@ -30,36 +34,46 @@ class Generator(ABC):
         """
         return array([self.next() for _ in range(n)])
 
-class PythonGenerator(Generator):
+
+class PythonGenerator(Generators):
     """
     Classe qui implement le générateur natif de python
     """
     def __str__(self):
-        return "PythoGenerator"
+        return "Python_Generator"
 
     def next(self):
         return random()
 
-class OurGenerator(Generator):
+
+class OurGenerator(Generators):
     """
     Classe qui implémente notre Générateur de loi uniforme entre [0,1]
     """
-    def __str__(self)->str:
-        return "OurGenerator"
 
-    def __init__(self, decimals: NDArray, a: int = 1664525, c: int = 1013904223, m: int = 2**32 -1):
+    _iner_counter_ = 0 # compter
+    def __str__(self)->str:
+        if self.name is None:
+            return f"OurGenerator{OurGenerator._iner_counter_}"
+        else :
+            return self.name
+
+    def __init__(self, decimals: NDArray, a: int = 1664525, c: int = 1013904223, m: int = 2**32 -1 , name:str=None):
         """
         Initialisation du générateur avec une graine unique à chaque instanciation.
 
         Args:
-            decimals (NDArray): Séquence de chiffres pour l'initialisation.
+            decimals (NDArray): Séquence de chiffres à utiliser
             a (int): Multiplicateur du LCG.
             c (int): Incrément du LCG.
             m (int): Modulo du LCG (nombre premier de Mersenne).
+            name : nom personnalisé du générateur pour identification
         """
+        OurGenerator._iner_counter_ =+1
         self.a = a
         self.c = c
         self.m = m
+        self.name = name
 
         # Création d'une graine unique combinant :
         # 1. Les decimals fournis
@@ -75,10 +89,6 @@ class OurGenerator(Generator):
         self.mask = int.from_bytes(seed_hash[8:16], 'big') % self.m
 
     def next(self) -> float:
-        """
-        Génère le prochain nombre pseudo-aléatoire entre [0, 1[.
-        Combine LCG avec des opérations de bits pour améliorer la qualité.
-        """
         # LCG de base
         self.seed = (self.a * self.seed + self.c) % self.m
 
@@ -89,3 +99,4 @@ class OurGenerator(Generator):
 
         # Normalisation
         return x / self.m
+

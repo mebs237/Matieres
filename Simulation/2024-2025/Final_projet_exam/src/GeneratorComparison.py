@@ -7,8 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import Dict, List, Tuple, Union, Optional, Callable
 from Testing import test_generator
-from Generators import Generator
-from Tests import Test
+from Generators import Generators
+from Tests import Tests
 
 def calculate_generator_score(gen1_value:float,
                               gen2_value:float,                       metric_type: str,
@@ -65,7 +65,7 @@ def calculate_generator_score(gen1_value:float,
 
     return gen1_score, gen2_score
 
-def compare_generators(gen1: Generator, gen2: Generator,
+def compare_generators(gen1: Generators, gen2: Generators,
                       tests: List[Test], alpha: List[float] = [0.05],
                       k: int = 100, n: int = 200000,
                       metrics: Optional[List[str]] = None) -> Dict:
@@ -219,7 +219,7 @@ def visualize_generator_comparison(gen1_results: Dict, gen2_results: Dict,
         plt.tight_layout()
         plt.show()
 
-def plot_generator_evolution(gen1: Generator, gen2: Generator,
+def plot_generator_evolution(gen1: Generators, gen2: Generators,
                            tests: List, alpha: float = 0.05,
                            k: int = 100, n_values: List[int] = [10000, 50000, 100000, 200000],
                            metric: str = "rejection_rate") -> None:
@@ -268,7 +268,7 @@ def plot_generator_evolution(gen1: Generator, gen2: Generator,
     plt.tight_layout()
     plt.show()
 
-def plot_generator_iterations(gen1: Generator, gen2: Generator,
+def plot_generator_iterations(gen1: Generators, gen2: Generators,
                             tests: List, alpha: float = 0.05,
                             n: int = 200000, k_values: List[int] = [10, 50, 100, 200],
                             metric: str = "rejection_rate") -> None:

@@ -1,4 +1,5 @@
 import os
+from setuptools import setup
 from distutils.core import setup
 
 # Utility function to read the README file.
@@ -6,10 +7,10 @@ from distutils.core import setup
 # README file and 2) it's easier to type in the README file than to put a raw
 # string in below ...
 setup(
-    name = "TP1",
-    author = "Test",
-    version="1",
-    author_email = "test.test@test.test",
-    description = ("Exemple de structure pour un projet d'anum"),
-    keywords = "exemple"
+    name = "TP2",
+    author = "Prestonne Mebou",
+    version="0",
+    author_email = "Prestonne.MebouKoagne@student.ac.be",
+    description = ("TP sur les moindres carrés"),
+    keywords = "002"
     )

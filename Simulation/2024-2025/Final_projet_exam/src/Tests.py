@@ -1,21 +1,21 @@
 """
-Module de tests statistiques pour l'évaluation de la qualité des générateurs de nombres aléatoires.
-Implémente les tests classiques de randomisation avec des améliorations de performance et de robustesse.
+    Module d'implementation des tests statistiques du χ² , Gap , poker , collectionneur de coupons , Maximum , Kolmogorov-smirnov
+
 """
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Union, Optional, Literal, Callable
 from functools import cache
+from math import factorial
 import numpy as np
 from numpy.typing import NDArray
 from scipy import stats
 from collections import Counter
 from itertools import permutations
 import time
-from TestsUtils import ( Array , group_low_frequence, stirling, _get_optimal_bins )
+from Utils import *
 
-
-class Test(ABC):
+class Tests(ABC):
     """Classe abstraite de base pour tous les tests statistiques."""
 
     @abstractmethod
@@ -35,19 +35,20 @@ class Test(ABC):
             alpha: Niveau de signification (défaut: 0.05)
             info: Si True, retourne ( result , add_info )
 
-        Returns:
-            result  : un dictionnaire avec
-            statistic (float) : statistique observée/calculée
-            critical_value (float) : valeur critique de la statistique
-            p_value (float) : p_valeur
-            reject_null (bool) : on rejete ou pas l'hypothèse nulle
+        Returns
+        ---
+            dic : un dictionnaire :
+            stat_obs (float) : statistique observée/calculée
+            stat_crit (float) : valeur critique de la statistique
+            p_value (float) : p valeur
+            accept (bool) : on accepte l'hypothèse nulle ; le test n'a pas detecté une différence significative
             add_info (dict) : dictionnaire avec des information additionnelles sur le test
         """
 
 
     def _validate_input(self, data: NDArray) -> None:
         """Valide les données d'entrée."""
-        if not isinstance(data, np.ndarray):
+        if not isinstance(data, np.ndarray) or not np.issubdtype(data.dtype,np.number):
             raise TypeError("Les données doivent être un numpy.ndarray")
         if data.size == 0:
             raise ValueError("Les données ne peuvent pas être vides")
@@ -55,7 +56,7 @@ class Test(ABC):
             raise ValueError("Les données doivent contenir uniquement des nombres finis")
 
 
-class Chi2Test(Test):
+class Chi2Test(Tests):
     """
         Test du Χ²
     """
@@ -76,7 +77,6 @@ class Chi2Test(Test):
     def __str__(self) -> str:
         return f"Chi2_Test (k={self.k:.1f})"
 
-
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
@@ -85,7 +85,7 @@ class Chi2Test(Test):
         self._validate_input(data)
 
         # Calculer les fréquences observées et attendues
-        observed, expected = _get_optimal_bins(data, k=self.k, probabilities=self.probabilities)
+        observed, expected = get_optimal_bins(data, k=self.k, probabilities=self.probabilities)
 
         # Regrouper les catégories si nécessaire
         observed, expected = group_low_frequence(observed, expected, seuil=self.min_expected)
@@ -98,21 +98,21 @@ class Chi2Test(Test):
         p_value = 1 - stats.chi2.cdf(chi2_stat, df)
         critical_value = stats.chi2.ppf(1 - alpha, df)
 
-        result = {'statistic': chi2_stat,
-                  'critical_value': critical_value,
+        result = {'stat_obs': chi2_stat,
+                  'stat_crit': critical_value,
                   'p_value': p_value,
-                  'reject_null': p_value < alpha}
+                  'accept': p_value >= alpha
+                 }
 
-        add_info = {
-                "bins": len(observed),
-                "df" : df,
-                "observed": observed,
-                "expected": expected
-            }
+        add_info = { "n_bins": df+1,"df" : df }
 
-        return result, add_info if info else result
+        if info :
+            return result , add_info
+        else :
+            return result
 
-class GapTest(Test):
+
+class GapTest(Tests):
     """
     Test du Gap.
     """
@@ -138,13 +138,12 @@ class GapTest(Test):
         self.p = beta_gap - alpha_gap
 
     def __str__(self) -> str:
-        return f"Gap Test ([{self.alpha_gap},{self.beta_gap}])"
+        return f"Gap Test ( [ {self.alpha_gap} , {self.beta_gap} ] )"
 
     @cache
     def _calculate_gap_probabilities(self, max_gap: int) -> NDArray:
-        """
-        Calcule les probabilités théoriques pour chaque longueur de gap.
-        """
+        """Calcule les probabilités théoriques pour chaque longueur de gap"""
+
         q = 1 - self.p
         probs = np.zeros(max_gap + 1)
         probs[:-1] = self.p * (q ** np.arange(max_gap))
@@ -154,7 +153,7 @@ class GapTest(Test):
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[float, Dict, TestResult]:
+             info: bool = False) -> Union[Dict, Tuple[Dict]]:
         """
         Exécute le test du Gap.
         """
@@ -169,14 +168,18 @@ class GapTest(Test):
         indices = np.where(marks)[0]
 
         if len(indices) <= 1:
-            return TestResult(
-                statistic=0,
-                critical_value=0,
-                p_value=1.0,
-                df=0,
-                reject_null=False,
-                add_info={"message": "Pas assez de marques pour calculer des gaps"}
-            )
+            result = {
+                'stat_obs':0,
+                'stat_crit':0,
+                'p_value':1.0,
+                'accept' : False
+            }
+
+            add_info={"message": "Pas assez de marques pour calculer des gaps"}
+            if info :
+                return result , add_info
+            else :
+                return result
 
         # Calculer les gaps
         gaps = np.diff(indices) - 1
@@ -204,22 +207,22 @@ class GapTest(Test):
         p_value = 1 - stats.chi2.cdf(chi2_stat, df)
         critical_value = stats.chi2.ppf(1 - alpha, df)
 
-        result = TestResult(
-            statistic=chi2_stat,
-            critical_value=critical_value,
-            p_value=p_value,
-            df=df,
-            reject_null=p_value < alpha,
-            add_info={
-                "gap_counts": gap_counts,
-                "expected_counts": expected_counts,
-                "max_gap": t
-            }
-        )
+        result = {
+            'stat_obs':chi2_stat,
+            'stat_crit':critical_value,
+            'p_value':p_value,
+            'accept':p_value >= alpha
+                }
 
-        return result.to_dict() if info else p_value
+        add_info = { 'chi2_df':df , "max_gap": t}
 
-class PokerTest(Test):
+        if info :
+            return result , add_info
+        else :
+            return result
+
+
+class PokerTest(Tests):
     """
     Test du Poker amélioré avec gestion optimisée des motifs.
     """
@@ -236,7 +239,7 @@ class PokerTest(Test):
         self.group_size = group_size
 
     def __str__(self) -> str:
-        return f"Poker Test(n={self.group_size})"
+        return f"Poker_Test n = {self.group_size} "
 
     @cache
     def _get_pattern_type(self, group: NDArray) -> str:
@@ -266,10 +269,8 @@ class PokerTest(Test):
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[float, Dict, TestResult]:
-        """
-        Exécute le test du Poker.
-        """
+             info: bool = False) -> Union[Dict , Tuple[Dict]]:
+
         self._validate_input(data)
 
         # Vérifier qu'il y a assez de données
@@ -317,22 +318,27 @@ class PokerTest(Test):
         p_value = 1 - stats.chi2.cdf(chi2_stat, df)
         critical_value = stats.chi2.ppf(1 - alpha, df)
 
-        result = TestResult(
-            statistic=chi2_stat,
-            critical_value=critical_value,
-            p_value=p_value,
-            df=df,
-            reject_null=p_value < alpha,
-            add_info={
+        result = {'stat_obs': chi2_stat,
+                  'stat_crit': critical_value,
+                  'p_value': p_value,
+                  'accept': p_value >= alpha
+                  }
+
+        add_info={
+                'df':df ,
                 "pattern_counts": dict(pattern_counts),
                 "expected_counts": expected_counts,
                 "theoretical_probs": theoretical_probs
-            }
-        )
+                }
 
-        return result.to_dict() if info else p_value
 
-class CouponCollectorTest(Test):
+        if info :
+            return result , add_info
+        else :
+            return result
+
+
+class CouponCollectorTest(Tests):
     """
     Test du Collectionneur de Coupons amélioré.
     """
@@ -347,27 +353,12 @@ class CouponCollectorTest(Test):
         self.d = d
 
     def __str__(self) -> str:
-        return f"Test du Collectionneur de Coupons (d={self.d})"
-
-    @cache
-    def _stirling(self, n: int, k: int) -> int:
-        """
-        Calcule le nombre de Stirling de deuxième espèce.
-        """
-        if n < 0 or k < 0:
-            raise ValueError("n et k doivent être des entiers positifs")
-
-        if n == k:
-            return 1
-        elif n == 0 or k == 0:
-            return 0
-
-        return k * self._stirling(n - 1, k) + self._stirling(n - 1, k - 1)
+        return f"Coupon_Collector_Test (d={self.d})"
 
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[float, Dict, TestResult]:
+             info: bool = False) -> Union[Dict, Tuple[Dict]]:
         """
         Exécute le test du Collectionneur de Coupons.
         """
@@ -395,21 +386,25 @@ class CouponCollectorTest(Test):
                 segment_length = 0
 
         if not segments:
-            return TestResult(
-                statistic=0,
-                critical_value=0,
-                p_value=1.0,
-                df=0,
-                reject_null=False,
-                add_info={"message": "Pas de segments complets trouvés"}
-            )
+            result = {'stat_obs': 0,
+                  'stat_crit': 0,
+                  'p_value': 1,
+                  'accept': True
+                  }
+
+            add_info={"message": "Pas de segments complets trouvés"}
+
+            if info :
+                return result , add_info
+            else :
+                return result
 
         # Calculer les probabilités théoriques
         max_length = max(segments)
         probs = np.zeros(max_length + 1)
 
         for r in range(d, max_length + 1):
-            probs[r] = (factorial(d) / (d ** r)) * self._stirling(r - 1, d - 1)
+            probs[r] = (factorial(d) / (d ** r)) * stirling(r - 1, d - 1)
 
         # Compter les occurrences de chaque longueur
         length_counts = np.zeros(max_length + 1)
@@ -426,23 +421,27 @@ class CouponCollectorTest(Test):
         p_value = 1 - stats.chi2.cdf(chi2_stat, df)
         critical_value = stats.chi2.ppf(1 - alpha, df)
 
-        result = TestResult(
-            statistic=chi2_stat,
-            critical_value=critical_value,
-            p_value=p_value,
-            df=df,
-            reject_null=p_value < alpha,
-            add_info={
+        result = {'stat_obs': chi2_stat,
+                  'stat_crit': critical_value,
+                  'p_value': p_value,
+                  'accept': p_value>=alpha
+                  }
+
+        add_info={
+                "chi2_df":df,
                 "segments": segments,
                 "length_counts": length_counts,
                 "expected_counts": expected_counts,
                 "d": d
             }
-        )
 
-        return result.to_dict() if info else p_value
+        if info :
+            return result , add_info
+        else :
+            return result
 
-class KolmogorovSmirnovTest(Test):
+
+class KolmogorovSmirnovTest(Tests):
     """
     Test de Kolmogorov-Smirnov pour comparer la distribution empirique
     à une distribution uniforme.
@@ -450,26 +449,16 @@ class KolmogorovSmirnovTest(Test):
 
     def __init__(self):
         """Initialise le test de Kolmogorov-Smirnov."""
-        pass
+
 
     def __str__(self) -> str:
-        return "Kolmogorov-Smirnov Test"
+        return "Kolmogorov-Smirnov_Test"
 
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[Dict]:
-        """
-        Exécute le test de Kolmogorov-Smirnov.
+             info: bool = False) -> Union[Dict,Tuple[Dict]]:
 
-        Args:
-            data: Séquence de nombres à tester (doit être dans [0,1])
-            alpha: Niveau de signification
-            info: Si True, retourne des informations détaillées
-
-        Returns:
-            p-value ou TestResult selon le paramètre info
-        """
         self._validate_input(data)
 
         # Vérifier que les données sont dans [0, 1]
@@ -498,56 +487,49 @@ class KolmogorovSmirnovTest(Test):
         # Calculer la valeur critique
         critical_value = stats.kstwobign.ppf(1 - alpha)
 
-        result = TestResult(
-            statistic=ks_stat,
-            critical_value=critical_value,
-            p_value=p_value,
-            df=n,  # Le nombre de degrés de liberté est égal à la taille de l'échantillon
-            reject_null=p_value < alpha,
-            add_info={
+        result = {'stat_obs': ks_stat,
+                  'stat_crit': critical_value,
+                  'p_value': p_value,
+                  'accept': p_value>alpha
+                  }
+        add_info={
+                'ks_df':n ,
                 "D_plus": D_plus,
                 "D_minus": D_minus,
                 "D": D,
                 "n": n
-            }
-        )
+                }
 
-        return result.to_dict() if info else p_value
+        if info :
+            return result , add_info
+        else :
+            return result
 
-class MaximumTest(Test):
+
+class MaximumTest(Tests):
     """
     Test des maximums pour détecter les tendances dans les séquences de nombres aléatoires.
     """
 
     def __init__(self, t: int = 5):
         """
-        Initialise le test des maximums.
+            Initialise le test des maximums.
 
-        Args:
-            t: Nombre de groupes à considérer (défaut: 5)
+            Args:
+                t: Nombre de groupes à considérer (défaut: 5)
         """
         if t < 2:
             raise ValueError("t doit être au moins 2")
         self.t = t
 
     def __str__(self) -> str:
-        return f"Maximum Test (t={self.t})"
+        return f"Maximum_Test ( t={self.t} )"
 
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[float, Dict, TestResult]:
-        """
-        Exécute le test des maximums.
+             info: bool = False) -> Union[Dict, Tuple[Dict]]:
 
-        Args:
-            data: Séquence de nombres à tester
-            alpha: Niveau de signification
-            info: Si True, retourne des informations détaillées
-
-        Returns:
-            p-value ou TestResult selon le paramètre info
-        """
         self._validate_input(data)
 
         n = len(data)
@@ -568,17 +550,23 @@ class MaximumTest(Test):
         # Calculer la valeur critique
         critical_value = stats.norm.ppf(1 - alpha/2)
 
-        result = TestResult(
-            statistic=stat,
-            critical_value=critical_value,
-            p_value=p_value,
-            df=self.t - 1,
-            reject_null=p_value < alpha,
-            add_info={
+        result = {
+                'stat_obs': stat,
+                'stat_crit': critical_value,
+                'p_value': p_value,
+                'accept': p_value >=  alpha
+                }
+
+        add_info={
+                'max_df':self.t-1,
                 "max_values": max_values,
                 "group_size": group_size,
                 "t": self.t
             }
-        )
 
-        return result.to_dict() if info else p_value
+
+        if info :
+            return result , add_info
+        else :
+            return result
+

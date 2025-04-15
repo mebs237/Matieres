@@ -1,7 +1,10 @@
-Veuillez mettre les noms des personnes du groupe ici.
+Membres du groupe 
 
-Veillez à une bonne analyse du problème, à la justification des vos
-décisions et à la clarté du code et des explications.
+- Louise-Anne Vanbostral
+- Prestonne Mebou
+- Abby-Gaele Cardinal
+- Clémént Vande Vyver
+- Lisa Vitali
 
 
 python setup.py build ⇒ doit « compiler » votre projet.
