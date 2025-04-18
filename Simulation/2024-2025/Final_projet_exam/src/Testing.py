@@ -13,9 +13,9 @@ import time
 import numpy as np
 import  pandas as pd
 from typing import List, Dict, Tuple, Optional, Union
-from numpy import ndarray , zeros
+from numpy.typing import NDArray
 from functools import cache
-from Tests import Tests , Chi2Test
+from Tests import Tests , Chi2Test , KSTest
 from Generators import Generators
 from typing import Dict, List, Callable, Tuple, Any
 from dataclasses import dataclass
@@ -140,7 +140,7 @@ def test_generator(generator: Generators,
     else:
         return results
 
-def test_sequence(sequence: np.ndarray,
+def test_sequence(sequence: NDArray,
                   tests: List[Tests] = [Chi2Test()],
                   alpha: List[float] = [0.05],
                   history :bool = False,
@@ -231,7 +231,7 @@ def test_sequence(sequence: np.ndarray,
 @dataclass
 class ScoreMetric:
     """
-        classe implementant le score par rapport à une métrique
+        classe implementant une métrique des test
     """
     name: str # nom de la métrique
     function: Callable # evaluation du score par rapport à la métrique
@@ -290,9 +290,9 @@ def enhanced_score(
 
     return scores
 
-def analyze_sequence_structure(sequence: np.ndarray,
-                            window_size: int = 1000,
-                            overlap: int = 500) -> Dict:
+def analyze_sequence_structure(sequence: NDArray,
+                               window_size: int = 1000,
+                               overlap: int = 500) -> Dict:
     """
     Analyse la structure locale d'une séquence.
     """
@@ -404,3 +404,6 @@ def compare_generators_score(gen1: Generators,
         }
 
     return scores
+
+
+

@@ -441,7 +441,7 @@ class CouponCollectorTest(Tests):
             return result
 
 
-class KolmogorovSmirnovTest(Tests):
+class KSTest(Tests):
     """
     Test de Kolmogorov-Smirnov pour comparer la distribution empirique
     à une distribution uniforme.
@@ -453,6 +453,7 @@ class KolmogorovSmirnovTest(Tests):
 
     def __str__(self) -> str:
         return "Kolmogorov-Smirnov_Test"
+
 
     def test(self,
              data: NDArray,
