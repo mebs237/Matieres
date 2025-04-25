@@ -18,7 +18,6 @@ from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 
 
-
 # DEFINITION DES CONSTANTES
 
 m , k , g = 1 , 3 , 9.81
@@ -33,13 +32,17 @@ def system(t:float ,u:NDArray,epsilon:float,mu:float=0)->NDArray:
                      (- k*x - epsilon*x**3 - mu*abs(dx)*dx )/m + g
                     ])
 
+
 def periode(epsilon:float ,mu:float = 0, t_max:float = 50, y0 : Optional[NDArray] = None , info:Optional[bool] = False)->Union[float , Dict]:
     """
-    calcule la période de la soltuion u dans le cas sans frottement , en detectant les maxima de x (dx = 0 avec direction négative)
+    ## Calcule la période de la soltuion u dans le cas sans frottement , en detectant les maxima de x (dx = 0 avec direction négative)
 
     Strategie
     ---------
-        si x(t) et
+        Comme x(t) et ∂ₜx(t)  périodiques de  période commune T , on repère les temps tᵢ  entre deux extrema de x (qui correspondent aux racines de ∂ₜx(t) ) , puis on , prend les différences entre Tᵢ = tᵢ₊₁ - tᵢ qui sont supposées tendre en moyenne vers T , et afin on prend la moyenne des Dᵢ . Pour cela :
+
+        -  ``event()`` : permet de repérer les temps tᵢ
+        - ``event.direction`` : spécifie dans quel sens le chagement de signe se fait
     """
     if y0 is None:
         y0 = np.array([0.0,0.0]) # condition initiale par défaut
@@ -205,9 +208,21 @@ def plot_solution(epsilon : float , mu:float=0.0 , t_sim : int = 100 , num_point
     plt.show()
 
 def x_max_sim(epsilon:float , mu : float , v0:float , t_sim :float= 100):
+    """
+    AI is creating summary for x_max_sim
 
+    Args:
+        epsilon (float): [description]
+        mu (float): [description]
+        v0 (float): [description]
+        t_sim (float, optional): [description]. Defaults to 100.
+
+    Returns:
+        [type]: [description]
+    """
     sol = periode(epsilon, mu = mu , y0 = [0,v0],t_max= t_sim  , info=True)['sol']
 
+    # retourner l'élongation maximale
     return np.max(sol.y[0])
 
 

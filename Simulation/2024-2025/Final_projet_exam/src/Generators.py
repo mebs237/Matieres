@@ -4,13 +4,9 @@
 
 from abc import ABC , abstractmethod
 from hashlib import sha256
-from time import time_ns
-from os import urandom
 from numpy.typing import NDArray
 from numpy import array
 from numpy.random import random
-
-
 
 
 class Generators(ABC):
@@ -81,7 +77,7 @@ class OurGenerator(Generators):
         # 3. Une valeur aléatoire du système
 
         # Combine les trois sources d'aléatoire
-        unique_seed = decimals.tobytes() + time_ns().to_bytes(8, 'big') + urandom(8)
+        unique_seed = decimals.tobytes()
 
         # Hachage final pour obtenir une graine uniforme
         seed_hash = sha256(unique_seed).digest()

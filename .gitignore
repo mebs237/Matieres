@@ -132,10 +132,11 @@ Intro au calcul scientifique/2024-2025/war_up/warm_up-25.pdf
 Intro au calcul scientifique/Matplotlib-demo-1.0 (1).tar.gz
 Intro au calcul scientifique/TPx (4).tar.gz
 
-#Intro au Machine Learning
+#Introduction au Machine Learning et data science
 Intro au Machine Learning DS/Tp/lab3/lab3.zip
 Intro au Machine Learning DS/Autres lectures/
 Intro au Machine Learning DS/Lectures-Syllabus/
+
 # Logique et théorie des modèles
 Logique_Theorie_des_modeles/
 
@@ -147,17 +148,15 @@ README.md
 
 # Simulation
 Simulation/2023-2024/
-Simulation/2024-2025/Donald.E.Knuth - The Art of Computer Programming I-III, Concrete Mathematics, The Tex Book/
-Simulation/2024-2025/Final_projet_exam/Rapport/.Rhistory
-Simulation/2024-2025/Final_projet_exam/Rapport/Rapport.Rmd
-Simulation/2024-2025/Final_projet_exam/Rapport/Rapport.md
-Simulation/2024-2025/Final_projet_exam/Rapport/Rapport.tex
-Simulation/2024-2025/Final_projet_exam/Rapport/observed_vs_expected.png
-Simulation/2024-2025/Final_projet_exam/src/group_class.prompt.txt
+Simulation/2024-2025/Lectures
+Simulation/2024-2025/Infos
+Simulation/2024-2025/Instructions
+Simulation/2024-2025/Prompts
+
 Statistiques/
 
 # Variétes diff
-"Varietes_diif/"
+Varietes_diif/
 
 # comptage.py
 comptage.py
@@ -166,7 +165,6 @@ cours univ Rennes.pdf
 
 proba et stat/
 
-Simulation
 projet_transversal_de_mathematique/Docs
 projet_transversal_de_mathematique/projet_final/25Rangeland
 projet_transversal_de_mathematique/projet_final/essai_reponse
