@@ -1,0 +1,44 @@
+Après avoir analysé projet25 , qui est le sujet de notre projet de machine learning et en supposant que tu as toutes les données nécessaires ; Fais le projet de A à Z avec tous les détails , c'est à dire fourni les codes et implémentations python  sur l'exploration des données et la construction des modèles le fichier  à soumettre sous kaggle , sachant que :
+- notre modèle imposé est le Lasso Ridge , pour le modèle au choix , proposes celui qui sera meilleur pour la compétition
+- fais les codes dans un notebook détaillé et commenté
+- Le professeur a insisté que le rapport du projet doit montrer les étapes et méthodologie utilisée pour réduire au maximum l'erreur hors entraînement 
+- le rapport en français de maximum 10 pages
+- 
+                                                         
+je veux le tout avec des explications
+
+
+vu  que je ne pourrai pas de fournir toutes les données  voici les entêtes et première ligne de :
+
+result_train.csv :
+- entête : CodeINSEE,LibellÃ© du dÃ©partement,LibellÃ© de la commune,Etat saisie,Inscrits,Abstentions,% Abs/Ins,Votants,% Vot/Ins,Blancs,% Blancs/Ins,% Blancs/Vot,Nuls,% Nuls/Ins,% Nuls/Vot,ExprimÃ©s,% Exp/Ins,% Exp/Vot,NÂ°Panneau,Sexe,Nom,PrÃ©nom,Voix,% Voix/Ins,% Voix/Exp
+- 1ere linge : 01006,Ain,AmblÃ©on,Complet,103,19,18.45,84,81.55,12,11.65,14.29,0,0.0,0.0,72,69.9,85.71,1,M,MACRON,Emmanuel,45,43.69,62.5,2,F,LE PEN,Marine,27,26.21,37.5
+
+
+result_test.csv : 
+- entête : CodeINSEE,LibellÃ© du dÃ©partement,LibellÃ© de la commune,Etat saisie,Inscrits
+
+- 1ere ligne : 01001,Ain,L'Abergement-ClÃ©menciat,Complet,643
+
+Niveau_de_vie_2013_a_la_commune.xlsx : 
+- entête : Code Commune ; Nom Commune , Niveau de vie Commune ; Niveau de vie Département 
+
+- 1ere ligne : 05047 ;	Éourres ; 10 021; 19 203  
+
+ 
+communes-frances-2020 : 
+- entête : code_insee,nom_standard,nom_sans_pronom,nom_a,nom_de,nom_sans_accent,nom_standard_majuscule,typecom,typecom_texte,reg_code,reg_nom,dep_code,dep_nom,canton_code,canton_nom,epci_code,epci_nom,academie_code,academie_nom,code_postal,codes_postaux,zone_emploi,code_insee_centre_zone_emploi,population,superficie_hectare,superficie_km2,densite,altitude_moyenne,altitude_minimale,altitude_maximale,latitude_mairie,longitude_mairie,latitude_centre,longitude_centre,grille_densite,gentile,url_wikipedia,url_villedereve
+
+- 1ere ligne :0,01001,L'Abergement-ClÃ©menciat,Abergement-ClÃ©menciat,Ã  Abergement-ClÃ©menciat,de l'Abergement-ClÃ©menciat,l-abergement-clemenciat,L'ABERGEMENT-CLÃ‰MENCIAT,COM,commune,84,Auvergne-RhÃ´ne-Alpes,01,Ain,0108,ChÃ¢tillon-sur-Chalaronne,200069193,CC de la Dombes,10,Lyon,01400,01400,08405,01053,779,1565,16,48.7,242,206.0,272.0,46.153,4.926,46.153,4.926,Rural Ã  habitat dispersÃ©,,https://fr.wikipedia.org/wiki/fr:L'Abergement-ClÃ©menciat,https://villedereve.fr/ville/01001-l-abergement-clemenciat
+
+age-insee-2020 : 
+- entête : INSEE	NOM	EPCI	DEP	REG	F0-2	F3-5	F6-10	F11-17	F18-24	F25-39	F40-54	F55-64	F65-79	F80+		H0-2	H3-5	H6-10	H11-17	H18-24	H25-39	H40-54	H55-64	H65-79	H80+
+
+- 1ere ligne : 1001	L'Abergement-Clémenciat	200069193	D1	R84	13	13	19	37	14	70	85	60	64	20		18	14	35	40	14	72	82	61	55	18
+
+
+MDB-INSEE-V2 : 
+- entête :  CODGEO	Nb Pharmacies et parfumerie	Dynamique Entrepreneuriale	Dynamique Entrepreneuriale Service et Commerce	Synergie Médicale COMMUNE	Orientation Economique	Indice Fiscal Partiel	Score Fiscal	Indice Evasion Client	Score Evasion Client	Indice Synergie Médicale	Score Synergie Médicale	SEG Croissance POP	LIBGEO	REG	DEP	Nb Omnipraticiens BV	Nb Infirmiers Libéraux BV	Nb dentistes Libéraux BV	Nb pharmaciens Libéraux BV	Densité Médicale BV	Score équipement de santé BV	Indice Démographique	Score Démographique	Indice Ménages	Score Ménages	Population	Evolution Population	Evolution Pop %	Nb Ménages	Nb Résidences Principales	Nb propriétaire	Nb Logement	Nb Résidences Secondaires	Nb Log Vacants	Nb Occupants Résidence Principale	Nb Femme	Nb Homme	Nb Mineurs	Nb Majeurs	Nb Etudiants	Nb Entreprises Secteur Services	Nb Entreprises Secteur Commerce	Nb Entreprises Secteur Construction	Nb Entreprises Secteur Industrie	Nb Création Enteprises	Nb Création Industrielles	Nb Création Construction	Nb Création Commerces	Nb Création Services	Moyenne Revenus Fiscaux Départementaux	Moyenne Revenus Fiscaux Régionaux	Dep Moyenne Salaires Horaires	Dep Moyenne Salaires Cadre Horaires	Dep Moyenne Salaires Prof Intermédiaire Horaires	Dep Moyenne Salaires Employé Horaires	Dep Moyenne Salaires Ouvrié Horaires	Reg Moyenne Salaires Horaires	Reg Moyenne Salaires Cadre Horaires	Reg Moyenne Salaires Prof Intermédiaire Horaires	Reg Moyenne Salaires Employé Horaires	Reg Moyenne Salaires Ouvrié Horaires	Valeur ajoutée régionale	Urbanité Ruralité	Score Urbanité	Nb Atifs	Nb Actifs Salariés	Nb Actifs Non Salariés	Nb Logement Secondaire et Occasionnel	Nb Hotel	Capacité Hotel	Nb Camping	Capacité Camping	Dynamique Démographique BV	Taux étudiants	Taux Propriété	Dynamique Démographique INSEE	Capacité Fisc	Capacité Fiscale	Moyenne Revnus fiscaux	Taux Evasion Client	Nb Education, santé, action sociale	Nb Services personnels et domestiques	Nb Santé, action sociale	Nb Industries des biens intermédiaires	Nb de Commerce	Nb de Services aux particuliers	Nb institution de Education, santé, action sociale, administration	PIB Régionnal	SEG Environnement Démographique Obsolète	Score Croissance Population	Score Croissance Entrepreneuriale	Score VA Région	Score PIB	Environnement Démographique	Fidélité	SYN MEDICAL	Seg Cap Fiscale	Seg Dyn Entre	DYN SetC	CP
+
+
+- 1ere ligne : 01001	0	57	23	114	Bassin Industriel	101,93878	59,04139	0	0	114,56713	0,13481	en croissance démographique	L' Abergement-Clémenciat	82	01	9	14	7	7	0,092859537	4	44,19769	0,0341	37,22029	0,02223	725	16	2	247	248	196	289	32	9	728	694	714	909	499	51	7	11	2	2	4	0	2	1	1	12509	10458	11,41034483	21,9637931	12,55862069	8,743103448	9,268965517	11,87302231	21,78782961	12,7040568	8,7831643	9,301419878	86957,45836	Com rurale < 2 000 m habts	0	295	254	41	32	0	0	0	0	1.Accroissement par excédent naturel et migratoire	0	67	-1	117	117	11483,5	0	3	1	0	9364	9350	3372	15105	173681	Zone rurale en croissance démographique	72,13115	0,01585	32,42578	33,83811	Bassin Industriel en croissance démographique	Pop Sédentaire	Synergie Médicale	Fiscalité moyenne	Faible dynamique	Faible Dynamique Serv et Com	01

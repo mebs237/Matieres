@@ -1,0 +1,55 @@
+CodeINSEE
+% Voix/Ins
+Inscrits
+Abstentions
+% Abs/Ins
+Votants
+% Vot/Ins
+Blancs
+% Blancs/Ins
+% Blancs/Vot
+Nuls
+% Nuls/Ins
+% Nuls/Vot
+Exprimés
+% Exp/Ins
+% Exp/Vot
+Libellé du département
+NiveauVieCommune
+NiveauVieDepartement
+population
+superficie_km2
+densite
+altitude_moyenne
+latitude_centre
+longitude_centre
+grille_densite
+PctJeunes
+PctAdultes
+PctSeniors
+RatioFH
+PctJeunes18_24
+PctAdultes25_39
+PctAdultes40_54
+PctSeniors55_64
+PctSeniors65_79
+PctSeniors80plus
+Moyenne Revenus Fiscaux Départementaux
+Moyenne Revnus fiscaux
+Urbanité Ruralité
+Taux Propriété
+Orientation Economique
+Dynamique Démographique INSEE
+Nb Entreprises Secteur Services
+Nb Entreprises Secteur Commerce
+Nb Entreprises Secteur Construction
+Nb Entreprises Secteur Industrie
+Taux étudiants
+Score Urbanité
+Capacité Fiscale
+Evolution Population
+log_densite
+taille_commune
+departement
+ratio_entreprises_pop
+ratio_services_industries

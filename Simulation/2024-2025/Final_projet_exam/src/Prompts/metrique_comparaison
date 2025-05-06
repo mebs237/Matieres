@@ -1,5 +1,0 @@
-Si je veux utliser  le taux de rejet , la moyenne des statistiques et d autres mesures , bref une liste de certaines metriques  pour pouvoir comparer deux générateurs
-je pense à un système de score pour les générateurs comparés , par exemple pour une metrique m un score 1 sera donné au générateur qui a la meilleure (au sens d une fonction conditionnelle qui sera defini pour chaque métrique ) et 0 pour le second genérateur
-Quelles mesures les plus pertinentes recommandes tu ?
-Quelles  sont tes recommandations par rapport à la méthode test de statisticaltest et la fonction test_generator ?
-Je voudrais une fonction qui me permettrait de tracer des graphiques de comparaison come : des barplot (une color differente de bar pour chaque générateur ) selon chaque metriques avec en abscisse le nom des test utilisés en odonnées la metrique utilisée. ou une courbe montrant certaine évolution en fonction de la taille (n) des éléments générés et/ou le nombre (k) de fois sur lesquel les générateurs ont été comparés
