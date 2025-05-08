@@ -1,0 +1,4 @@
+Soit P un polynôme à coefficients complexes dont les racines sont
+ λ_1,...,λ_k ∈ C de multiplicité respectives m_1,...,m_k.L’ensemble des solutions de l’EDO P(∂_t)u=0 ; sont les fonctions de la forme
+ u(t)= \sum\limits^k_{j=1} p_j(t)e^{λ_j t}
+ pour des polynômes p1,...,pk tels que deg p_j <m_j pour j=1,...,k

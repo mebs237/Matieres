@@ -1,0 +1,281 @@
+def get_preprocessor(X):
+  """
+  crée un préprocesseur pour les données d'entrée
+  """
+  X=X.copy()
+
+  num_col = X.select_dtypes(include=['int64', 'float64']).columns # numériques
+  cat_col = X.select_dtypes(include=['object']).columns # catégorielles
+
+  # Transfomer pour les booléens (convertion en numériques)
+  """
+  bool_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('to_int', FunctionTransformer(lambda x: x.astype(int)))
+        ])
+        """
+
+  # Transformer pour les variables numériques
+  num_transformer = Pipeline(steps=[
+      ('imputer', SimpleImputer(strategy='median')),
+      ('scaler', RobustScaler())
+  ])
+
+  # Transformer pour les variables catégorielles
+  cat_transformer = Pipeline(steps=[
+      ('imputer', SimpleImputer(strategy='most_frequent')),
+      ('onehot', OneHotEncoder(handle_unknown='ignore'))
+  ])
+
+  # Préprocesseur complet
+  preprocessor = ColumnTransformer(
+      transformers=[
+          #('bool', bool_transformer, bool_cols),
+          ('num', num_transformer, num_col),
+          ('cat', cat_transformer, cat_col)
+      ])
+
+  
+  return preprocessor
+
+
+
+def remove_quasi_constant_features(df, threshold=0.01,display=True):
+    """
+    Retourne les noms des colonnes(numériques) à garder car elles ont une  variance tolérable (supérieure au seuil): elle ne  sont constantes  ou quasi-constantes.
+    """
+    numerical_df = df.copy().select_dtypes(include=['int64', 'float64'])
+    variances = numerical_df.var()
+    low_variance_cols = variances[variances < threshold].index.to_list()
+    feat_to_keep = variances[variances >= threshold].index.to_list()
+    # Supprimer les colonnes à faible variance
+    if display:
+        print(f"Colonnes à faible variance : {low_variance_cols}")
+        print(f"Colonnes à conserver : {feat_to_keep}")
+
+    return low_variance_cols , feat_to_keep
+
+
+def remove_highly_correlated_features(df, target, threshold=0.8, disp_save_corr=False):
+    """
+    Retourne les noms des colonnes à supprimer car elles sont très corrélées entre elles.
+
+    Args:
+    ----
+    df : pd.DataFrame
+        Le DataFrame à analyser.
+    target : str
+        Le nom de la colonne cible.
+    threshold : float
+        Le seuil de corrélation au-delà duquel les colonnes sont considérées comme corrélées.
+    disp_save_corr : bool
+        Si True, affiche et sauvegarde la matrice de corrélation.
+
+    Returns:
+    -------
+    list :
+        Une liste de noms de colonnes à supprimer.
+    """
+    data = df.copy()
+    num_col = data.select_dtypes(include=[np.number]).columns
+    df_numeric = data[num_col].drop(columns=[target], axis=1, errors='ignore')  # Exclure la cible
+    # Calculer la matrice de corrélation
+    corr_mat = df_numeric.corr()
+    corr_matrix = corr_mat.abs()  # Matrice de corrélation absolue
+
+    # Corrélation entre chaque feature et la cible
+    target_corr = data[num_col].corrwith(df[target]).abs()
+
+    # Masquer la moitié inférieure
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+
+    to_drop = set()
+    for col in upper.columns:
+        for row in upper.index:
+            if upper.loc[row, col] > threshold:
+                # Garde la colonne la plus corrélée avec la cible
+                if target_corr[col] > target_corr[row]:
+                    to_drop.add(row)
+                else:
+                    to_drop.add(col)
+
+    if disp_save_corr:
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(corr_mat, annot=True, fmt=".2f", cmap='coolwarm', square=True)
+        plt.title("Matrice de corrélation")
+        plt.tight_layout()
+        plt.savefig("corr_matrix.png")
+        plt.show()
+
+    return list(to_drop)
+
+
+
+def get_feature_names(preprocessor , X):
+  """
+  Retourne les noms des colonnes après le prétraitement
+  """
+  cat_col = X.select_dtypes(include=['object']).columns
+  num_col = X.select_dtypes(include=['int64', 'float64']).columns
+
+  # Use named_transformers_ instead of named_steps for ColumnTransformer
+  cat_features = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(cat_col)
+
+  return list(num_col) + list(cat_features)
+
+def select_important_features2(X, y):
+    # S'assurer que X est un DataFrame
+    X_copy = X.copy() if isinstance(X, pd.DataFrame) else pd.DataFrame(X)
+
+    # Prétraitement des colonnes catégorielles
+    categorical_columns = X_copy.select_dtypes(include=['object']).columns
+    for col in categorical_columns:
+        X_copy[col] = X_copy[col].astype(str)
+
+    # Application du preprocesseur avec gestion des matrices sparse
+    preprocessor = get_preprocessor(X_copy)
+    X_processed = preprocessor.fit_transform(X_copy)
+    feature_names = get_feature_names(preprocessor, X_processed)
+
+    # Modèles avec support des matrices sparse
+    models = {
+        'lasso': LassoCV(cv=5, random_state=RANDOM_STATE),
+        'rf': RandomForestRegressor(random_state=RANDOM_STATE, sparse_output=True),
+        'xgb': XGBRegressor(
+            random_state=RANDOM_STATE,
+            enable_categorical=True,
+            tree_method='hist'
+        )
+    }
+
+    # Entraînement et sélection des features
+    features = []
+    for name, model in models.items():
+        model.fit(X_processed, y)
+        importances = pd.Series(
+            getattr(model, 'feature_importances_' if name != 'lasso' else 'coef_'),
+            index=feature_names
+        )
+
+        if name == 'lasso':
+            top = importances[importances != 0].index.tolist()
+        else:
+            top = importances.sort_values(ascending=False).head(20).index.tolist()
+        features.extend(top)
+
+    # Retourner les features uniques
+    return list(set(features))
+
+
+def select_important_features(X, y):
+    # Prétraitement des données
+    X_copy = X.copy()
+    for col in X_copy.select_dtypes(include=['object']).columns:
+        if X_copy[col].apply(type).nunique() > 1:
+            X_copy[col] = X_copy[col].astype(str)
+
+    # Application du preprocesseur
+    preprocessor = get_preprocessor(X_copy)
+    X_processed = preprocessor.fit_transform(X_copy)
+    feature_names = get_feature_names(preprocessor, X_processed)
+
+    # LassoCV - travaille directement avec la matrice sparse
+    lasso_cv = LassoCV(cv=5, random_state=RANDOM_STATE)
+    lasso_cv.fit(X_processed, y)
+    lasso_coef = pd.Series(lasso_cv.coef_, index=feature_names)
+    lasso_top = lasso_coef[lasso_coef != 0].index.tolist()
+
+    # RandomForest - utilise la matrice sparse
+    rf = RandomForestRegressor(random_state=RANDOM_STATE, sparse_output=True)
+    rf.fit(X_processed, y)
+    rf_importance = pd.Series(rf.feature_importances_, index=feature_names)
+    rf_top = rf_importance.sort_values(ascending=False).head(20).index.tolist()
+
+    # XGBoost - configuration pour matrices sparse
+    xgb = XGBRegressor(
+        random_state=RANDOM_STATE,
+        enable_categorical=True,
+        tree_method='hist'  # Plus efficace pour les grandes matrices
+    )
+    xgb.fit(X_processed, y)
+    xgb_importance = pd.Series(xgb.feature_importances_, index=feature_names)
+    xgb_top = xgb_importance.sort_values(ascending=False).head(20).index.tolist()
+
+    # Consolidation des features importantes
+    important_features = list(set(lasso_top + rf_top + xgb_top))
+    return important_features
+
+
+
+def get_highly_correlated_features(X, threshold=0.9):
+    """
+    Retourne une liste de colonnes hautement corrélées.
+    """
+    X_num = X.select_dtypes(include=['int64', 'float64'])
+
+    # Calculer la matrice de corrélation
+    corr_matrix = X_num.corr().abs()
+    # On ne garde que la partie supérieure de la matrice de corrélation
+    # pour éviter les doublons
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+    # Trouver les colonnes avec une corrélation supérieure au seuil
+    # et les ajouter à la liste
+    highly_correlated_features = [column for column in upper.columns if any(upper[column] > threshold)]
+    return highly_correlated_features
+
+# Optimisation de la selection des features
+def backward_stepwise_selection(model,X,y,preprocessor=None,int_features:list=None,min_features:int=None,rtol:float=0.001,cv:int=5):
+  """
+  fonction de selection plus fines des meilleurs features selon un modèle
+  """
+  if int_features is None:
+    features = list(X.columns)
+  else:
+    features = int_features
+
+  if min_features is None:
+    min_features = max( 5 , np.floor(0.1*len(features)) )
+
+  if preprocessor is None:
+    preprocessor = get_preprocessor(X)
+
+  best_rmse = float('inf')
+
+  while len(features) > min_features:
+        worst_rmse = float('inf')
+        worst_feature = None
+        current_rmse = []
+
+        # Évaluation de chaque feature
+        for f in features:
+            temp_features = [v for v in features if v != f]
+            temp_model = Pipeline([
+                ('preprocessor', preprocessor),
+                ('model', model)
+            ])
+            temp_model.fit(X[temp_features], y)
+            scores = cross_val_score(temp_model, X[temp_features], y,
+                                    scoring='neg_root_mean_squared_error', cv=cv)
+            rmse = -scores.mean()
+            current_rmse.append(rmse)
+
+            if rmse < worst_rmse:
+                worst_rmse = rmse
+                worst_feature = f
+
+        relative_gain = (best_rmse - worst_rmse) / best_rmse
+        current_rmse = np.array(current_rmse)
+
+        # Critère d'arrêt dynamique
+        if relative_gain < rtol :
+            break
+
+        if worst_rmse < best_rmse:
+            best_rmse = worst_rmse
+            features.remove(worst_feature)
+
+        else:
+            break
+
+  return features
+
