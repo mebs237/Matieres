@@ -1,0 +1,55 @@
+# Optimisation de la selection des features pour chaque modele
+def backward_stepwise_selection2(model,X,y,preprocessor=None,int_features:list=None,min_features:int=None,rtol:float=0.001,cv:int=5):
+  """
+  fonction de selection rétrograde des meilleurs features pour ``modèle``
+  """
+  if int_features is None:
+    features = list(X.columns.copy())
+  else:
+    features = int_features.copy()
+
+  if min_features is None:
+    min_features = max( 5 , int(np.floor(0.1*len(features))) )
+
+  if preprocessor is None:
+    preprocessor = get_preprocessor(X)
+
+  best_rmse = float('inf')
+
+  while len(features) > min_features:
+        worst_rmse = float('inf')
+        worst_feature = None
+        current_rmse = []
+
+        # Évaluation de chaque feature
+        for f in features:
+            temp_features = [v for v in features if v != f]
+            temp_model = Pipeline([
+                ('preprocessor', preprocessor),
+                ('model', model)
+            ])
+            temp_model.fit(X[temp_features], y)
+            scores = cross_val_score(temp_model, X[temp_features], y,
+                                    scoring='neg_root_mean_squared_error', cv=cv)
+            rmse = -scores.mean()
+            current_rmse.append(rmse)
+
+            if rmse < worst_rmse:
+                worst_rmse = rmse
+                worst_feature = f
+
+        relative_gain = (best_rmse - worst_rmse) / best_rmse
+        current_rmse = np.array(current_rmse)
+
+        # Critère d'arrêt dynamique
+        if relative_gain < rtol :
+            break
+
+        if worst_rmse < best_rmse:
+            best_rmse = worst_rmse
+            features.remove(worst_feature)
+
+        else:
+            break
+
+  return features

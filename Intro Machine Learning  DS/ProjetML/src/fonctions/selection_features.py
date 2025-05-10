@@ -232,135 +232,46 @@ def get_feature_names_from_preprocessor(preprocessor, X):
         # Fallback: utiliser les indices comme noms
         return [f"feature_{i}" for i in range(preprocessor.transform(X.head(1)).shape[1])]
 
-def select_important_features(X, y, n_top=20):
-    """
-    Sélectionne les caractéristiques importantes en utilisant trois modèles différents.
-    Gère automatiquement les colonnes de types mixtes.
 
-    Args:
-        X (pd.DataFrame): DataFrame des caractéristiques
-        y (pd.Series): Variable cible
-        n_top (int): Nombre de caractéristiques top à sélectionner par modèle
-
-    Returns:
-        list: Liste des caractéristiques importantes à conserver
-    """
+def select_important_features(X, y):
+    # Prétraitement des données
     X_copy = X.copy()
-
-    # Gérer les colonnes avec des types mixtes
-    for col in X_copy.columns:
-        # Vérifier si la colonne contient des types mixtes
-        try:
-            col_types = X_copy[col].apply(lambda x: type(x) if not pd.isna(x) else None).unique()
-            col_types = [t for t in col_types if t is not None]
-
-            if len(col_types) > 1:
-                print(f"Colonne {col} contient des types mixtes: {col_types}. Conversion en string.")
-                X_copy[col] = X_copy[col].astype(str)
-
-            # Conversion spécifique pour les booléens quand ils sont mélangés avec NaN
-            if pd.api.types.is_bool_dtype(X_copy[col]) and X_copy[col].isna().any():
-                print(f"Colonne {col} contient des booléens avec NA. Conversion en string.")
-                X_copy[col] = X_copy[col].astype(str)
-        except Exception as e:
-            print(f"Erreur lors de l'analyse des types pour la colonne {col}: {e}. Conversion en string.")
+    for col in X_copy.select_dtypes(include=['object']).columns:
+        if X_copy[col].apply(type).nunique() > 1:
             X_copy[col] = X_copy[col].astype(str)
 
-    # Prétraitement des données
+    # Application du preprocesseur
     preprocessor = get_preprocessor(X_copy)
     X_processed = preprocessor.fit_transform(X_copy)
+    feature_names = get_feature_names(preprocessor, X_processed)
 
-    # Obtention des noms des caractéristiques
-    try:
-        feature_names = get_feature_names_from_preprocessor(preprocessor, X_copy)
-    except Exception as e:
-        print(f"Erreur lors de l'extraction des noms de caractéristiques: {e}")
-        # Fallback: utiliser les indices comme noms
-        feature_names = [f"feature_{i}" for i in range(X_processed.shape[1])]
+    # LassoCV - travaille directement avec la matrice sparse
+    lasso_cv = LassoCV(cv=5, random_state=RANDOM_STATE)
+    lasso_cv.fit(X_processed, y)
+    lasso_coef = pd.Series(lasso_cv.coef_, index=feature_names)
+    lasso_top = lasso_coef[lasso_coef != 0].index.tolist()
 
-    # Sélection par Lasso
-    important_features = []
+    # RandomForest - utilise la matrice sparse
+    rf = RandomForestRegressor(random_state=RANDOM_STATE, sparse_output=True)
+    rf.fit(X_processed, y)
+    rf_importance = pd.Series(rf.feature_importances_, index=feature_names)
+    rf_top = rf_importance.sort_values(ascending=False).head(20).index.tolist()
 
-    try:
-        lasso_cv = LassoCV(cv=5, random_state=RANDOM_STATE)
-        lasso_cv.fit(X_processed, y)
-        lasso_coef = pd.Series(lasso_cv.coef_, index=feature_names)
-        lasso_top = lasso_coef[lasso_coef != 0].index.tolist()
-        important_features.extend(lasso_top)
-        print(f"Lasso a sélectionné {len(lasso_top)} caractéristiques")
-    except Exception as e:
-        print(f"Erreur lors de la sélection par Lasso: {e}")
+    # XGBoost - configuration pour matrices sparse
+    xgb = XGBRegressor(
+        random_state=RANDOM_STATE,
+        enable_categorical=True,
+        tree_method='hist'  # Plus efficace pour les grandes matrices
+    )
+    xgb.fit(X_processed, y)
+    xgb_importance = pd.Series(xgb.feature_importances_, index=feature_names)
+    xgb_top = xgb_importance.sort_values(ascending=False).head(20).index.tolist()
 
-    # Sélection par Random Forest
-    try:
-        rf = RandomForestRegressor(random_state=RANDOM_STATE)
-        rf.fit(X_processed, y)
-        rf_importance = pd.Series(rf.feature_importances_, index=feature_names)
-        rf_top = rf_importance.sort_values(ascending=False).head(n_top).index.tolist()
-        important_features.extend(rf_top)
-        print(f"Random Forest a sélectionné {len(rf_top)} caractéristiques")
-    except Exception as e:
-        print(f"Erreur lors de la sélection par Random Forest: {e}")
+    # Consolidation des features importantes
+    important_features = list(set(lasso_top + rf_top + xgb_top))
+    return important_features
 
-    # Sélection par XGBoost
-    try:
-        xgb = XGBRegressor(
-            random_state=RANDOM_STATE,
-            enable_categorical=True,
-            tree_method='hist'
-        )
-        xgb.fit(X_processed, y)
-        xgb_importance = pd.Series(xgb.feature_importances_, index=feature_names)
-        xgb_top = xgb_importance.sort_values(ascending=False).head(n_top).index.tolist()
-        important_features.extend(xgb_top)
-        print(f"XGBoost a sélectionné {len(xgb_top)} caractéristiques")
-    except Exception as e:
-        print(f"Erreur lors de la sélection par XGBoost: {e}")
 
-    # Fusion des sélections et mapping aux colonnes originales
-    unique_important_features = list(set(important_features))
-
-    # Filtrer pour ne garder que les caractéristiques correspondant aux colonnes originales
-    # (pour les variables catégorielles encodées, on garde toute la colonne d'origine)
-    original_columns = []
-    for feature in unique_important_features:
-        # Pour les caractéristiques numériques
-        if feature in X.columns:
-            original_columns.append(feature)
-        # Pour les caractéristiques catégorielles encodées (reconnaître les motifs OneHotEncoder)
-        else:
-            for col in X.select_dtypes(include=['object', 'category', 'bool']).columns:
-                if feature.startswith(f"{col}_"):
-                    original_columns.append(col)
-                    break
-
-    original_columns = list(set(original_columns))
-    print(f"Nombre de caractéristiques originales sélectionnées: {len(original_columns)}")
-
-    return original_columns
-
-def safe_feature_selection(X, features):
-    """
-    Sélectionne les caractéristiques en vérifiant qu'elles existent dans le DataFrame.
-
-    Args:
-        X (pd.DataFrame): DataFrame des caractéristiques
-        features (list): Liste des caractéristiques à sélectionner
-
-    Returns:
-        pd.DataFrame: DataFrame avec uniquement les caractéristiques valides
-    """
-    # Vérifier quelles caractéristiques existent dans le DataFrame
-    valid_features = [f for f in features if f in X.columns]
-
-    if len(valid_features) == 0:
-        warnings.warn("Aucune caractéristique valide trouvée. Utilisation de toutes les colonnes.")
-        return X
-
-    if len(valid_features) < len(features):
-        warnings.warn(f"{len(features) - len(valid_features)} caractéristiques non trouvées dans le DataFrame.")
-
-    return X[valid_features]
 
 def backward_stepwise_selection(model, X, y, preprocessor=None, initial_features=None, min_features=None, rtol=0.001, cv=5):
     """

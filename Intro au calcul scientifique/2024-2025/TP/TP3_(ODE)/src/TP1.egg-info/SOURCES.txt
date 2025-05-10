@@ -1,0 +1,15 @@
+MANIFEST.in
+README.txt
+ode25.pdf
+setup.py
+src/Figure_1.png
+src/Preuves_TP3_Abanda_Antoine_Barkani_Mebou_Smeets.pdf
+src/cas avec frottement.png
+src/cas sans frottement.png
+src/main_periode.py
+src/period_epsilon.png
+src/periode.py
+src/TP1.egg-info/PKG-INFO
+src/TP1.egg-info/SOURCES.txt
+src/TP1.egg-info/dependency_links.txt
+src/TP1.egg-info/top_level.txt
