@@ -70,17 +70,6 @@ def periode(epsilon:float ,mu:float = 0,
     y0 : NDArray, optional
         condition initiale
 
-    Returns
-    -------
-    Dict:
-        dictionnaire contenant :
-    - period : float
-        période de la solution
-    - sol : ODE Object
-        ODE encapsulant d'autre details sur la solution calculée
-    - y0 :    NDArray
-        condition initiale
-
     """
     if y0 is None:
         y0 = np.array([0.0,0.0]) # condition initiale par défaut
@@ -146,17 +135,6 @@ def vitesse_critique(epsilon:float, mu:float=0.0 ,
     n_iter : int, optional
         nombre d'itérations maximum pour la recherhce dichotomique
 
-
-    Returns
-    -------
-    Dict :
-        dictionnaire contenant :
-    - v_crit : float
-        la vitesse critique
-    - add_info : Dict
-        un dictionnaire retournant des informations sur
-        la précision et convergence du calcul dans le cas
-        où il y'a des frottements μ ≠ 0
     """
     if mu == 0:
         #Solution analytique via l'énergie mécanique
