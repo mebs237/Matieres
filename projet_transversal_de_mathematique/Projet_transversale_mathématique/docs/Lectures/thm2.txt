@@ -1,0 +1,7 @@
+Soit p un polynôme et µ ∈ C. Sous les hypothèses du théorème
+ précédent, il existe une solution (particulière) de l’équation
+ P(∂t)u = q(t)e^{µt}  de la forme   u(t) = t^{m∗}Q(t)e^{µt}
+
+ où m∗ est la multiplicité de µ comme racine de P :
+ m∗ = 0 si P(µ)=0, ou m*= mj si µ = λj pour un j ∈{1,...,k}.
+ et Q est un polynôme tel que degQ ⩽ degq

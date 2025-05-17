@@ -1,0 +1,26 @@
+Voici une proposition de réponse pour la Question 3, basée sur les informations du document '25Rangeland.pdf' :
+
+Pour prouver ce qui est affirmé dans le paragraphe précédent, nous devons examiner le comportement du champ de vecteurs donné par le membre de droite du système (1) sur le bord du carré $^2$, puis en déduire les propriétés des solutions.
+
+1.  **Le champ de vecteurs pointe vers l’intérieur de $^2$ sur son bord.**
+    Le bord de $^2$ est composé de quatre segments :
+    *   $g = 0$, $0 \le w \le 1$: Sur ce segment, $\frac{dg}{dt} = R_g (1 - 0 - 0.6\frac{0}{0.31 + w}) = R_g > 0$. Puisque $\frac{dg}{dt} > 0$, la composante $g$ de la vitesse est positive, ce qui signifie que la trajectoire se déplace vers l'intérieur du domaine (où $g > 0$).
+    *   $g = 1$, $0 \le w \le 1$: Sur ce segment, $\frac{dg}{dt} = R_g (1 - 1 - 0.6\frac{1}{0.31 + w}) = -0.6 R_g \frac{1}{0.31 + w} < 0$. Puisque $\frac{dg}{dt} < 0$, la composante $g$ de la vitesse est négative, ce qui signifie que la trajectoire se déplace vers l'intérieur du domaine (où $g < 1$).
+    *   $w = 0$, $0 \le g \le 1$: Sur ce segment, $\frac{dw}{dt} = R_w (1 - \frac{0}{0.31 + g} - 1.07) = R_w (-0.07) < 0$ (en utilisant la convention que $\frac{E+0.31}{E+}$ et son inverse sont égales à 1 lorsque $E=0$). Puisque $\frac{dw}{dt} < 0$, la composante $w$ de la vitesse est négative, ce qui signifie que la trajectoire se déplace vers l'intérieur du domaine (où $w > 0$).
+    *   $w = 1$, $0 \le g \le 1$: Sur ce segment, $\frac{dw}{dt} = R_w (1 - \frac{1}{0.31 + g} - 1.07) = R_w (-0.07 - \frac{1}{0.31 + g}) < 0$. Puisque $\frac{dw}{dt} < 0$, la composante $w$ de la vitesse est négative, ce qui signifie que la trajectoire se déplace vers l'intérieur du domaine (où $w < 1$).
+
+    Dans tous les cas, sur le bord de $^2$, le champ de vecteurs pointe vers l'intérieur de ce domaine.
+
+2.  **Pour tout $(g_0, w_0) \in^2$, la solution correspondante $t \mapsto (g(t), w(t))$ reste dans $^2$ et donc existe pour tout $t \in [0,+\infty[$.**
+    Étant donné que le champ de vecteurs pointe toujours vers l'intérieur sur le bord de $^2$, une solution qui démarre à l'intérieur de ce carré ne peut jamais en sortir. Si elle tentait de le faire, la vitesse au point de sortie aurait une composante pointant vers l'extérieur, ce qui contredit notre observation. Par conséquent, **l'ensemble $^2$ est invariant positivement** pour le système.
+
+    De plus, puisque la solution reste dans un ensemble borné (^2) et que le champ de vecteurs est de classe $C^1$ sur son domaine (comme mentionné dans), le théorème d'existence et d'unicité garantit l'existence d'une unique solution maximale. Le fait que la solution reste bornée dans $^2$ implique qu'elle **existe pour tout $t \in [0,+\infty[$**, car elle ne peut pas "exploser" en temps fini.
+
+3.  **Si $(g(t), w(t)) \xrightarrow[t \to +\infty]{} (g^*, w^*)$, alors $(g^*, w^*)$ est un équilibre.**
+    Si la solution $(g(t), w(t))$ converge vers un point $(g^*, w^*)$ lorsque $t \to +\infty$, cela signifie que la vitesse du point $(g(t), w(t))$, donnée par $(\frac{dg}{dt}, \frac{dw}{dt})$, doit s'approcher de $(0, 0)$ au fur et à mesure que $t$ tend vers l'infini. En effet, si la vitesse limite était non nulle, la solution continuerait à se déplacer et ne pourrait pas converger vers un point unique.
+
+    Puisque le champ de vecteurs $F(g, w) = (\frac{dg}{dt}, \frac{dw}{dt})$ est continu (car il est de classe $C^1$), nous avons :
+    $$ \lim_{t \to +\infty} F(g(t), w(t)) = F(\lim_{t \to +\infty} (g(t), w(t))) = F(g^*, w^*) $$
+    Comme $\lim_{t \to +\infty} (\frac{dg}{dt}, \frac{dw}{dt}) = (0, 0)$, il s'ensuit que $F(g^*, w^*) = (0, 0)$. Par définition, un point $(g^*, w^*)$ où le champ de vecteurs est nul est un **équilibre**. La solution de conditions initiales $(g^*, w^*)$ sera donc la fonction constante $t \mapsto (g^*, w^*)$.
+
+En conclusion, toutes les affirmations du paragraphe précédent ont été prouvées en analysant le signe des dérivées sur le bord de $^2$ et en utilisant les propriétés des équations différentielles avec des solutions bornées et la continuité du champ de vecteurs.

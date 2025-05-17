@@ -1,0 +1,70 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+
+\begin{document}
+
+\section*{Réponse à la question 3}
+
+\subsection*{Première affirmation : Les solutions partant du bord de $[0, 1]^2$ pointent vers l'intérieur.}
+
+\textbf{Preuve :} Pour vérifier que les trajectoires partant du bord de $[0, 1]^2$ pointent vers l'intérieur, examinons le comportement du champ de vecteurs sur chaque segment du bord :
+
+
+
+- \textbf{Sur le segment $g = 0$ (avec $w \in [0, 1]$) :}
+    $$
+    \partial_t g = R_g g(1 - g - 0.6w^{0.31} / (E + g)).
+    $$
+    Pour $g = 0$, on a $\partial_t g = 0$. Cependant, pour $g > 0$, $\partial_t g > 0$, donc les trajectoires tendent à rentrer dans le carré.
+
+
+- \textbf{Sur le segment $g = 1$ (avec $w \in [0, 1]$) :}
+    $$
+    \partial_t g = R_g (1)(1 - 1 - 0.6w^{0.31} / (E + 1)) < 0.
+    $$
+    Donc, $\partial_t g < 0$, ce qui signifie que les trajectoires reviennent vers l'intérieur.
+
+
+- \textbf{Sur le segment $w = 0$ (avec $g \in [0, 1]$) :}
+    $$
+    \partial_t w = R_w w(1 - w - 0.6g^{0.31} / (E + w)).
+    $$
+    Pour $w = 0$, on a $\partial_t w = 0$. Pour $w > 0$, $\partial_t w > 0$, donc les trajectoires entrent dans le carré.
+
+
+- \textbf{Sur le segment $w = 1$ (avec $g \in [0, 1]$) :}
+    $$
+    \partial_t w = R_w (1)(1 - 1 - 0.6g^{0.31} / (E + 1)) < 0.
+    $$
+    Donc, $\partial_t w < 0$, ce qui signifie que les trajectoires reviennent vers l'intérieur.
+
+
+Ainsi, sur chaque segment du bord, les trajectoires pointent vers l'intérieur du carré.
+
+\subsection*{Deuxième affirmation : Les solutions restent dans $[0, 1]^2$ pour tout $t \geq 0$.}
+
+\textbf{Preuve :} D'après la première affirmation, les trajectoires partant du bord de $[0, 1]^2$ pointent vers l'intérieur. Par conséquent, aucune trajectoire ne peut quitter le carré $[0, 1]^2$. De plus, comme le champ de vecteurs est continu et localement lipschitzien, le théorème de Cauchy-Lipschitz garantit l'existence et l'unicité des solutions maximales. Ces solutions sont donc bien définies pour tout $t \geq 0$ et restent dans $[0, 1]^2$.
+
+\subsection*{Troisième affirmation : Si $(g(t), w(t)) \to (g^*, w^*)$ lorsque $t \to +\infty$, alors $(g^*, w^*)$ est un équilibre.}
+
+\textbf{Preuve :}
+
+\begin{enumerate}
+    \item \textbf{Contre-exemple avec $u' = u$ :} Considérons l'équation différentielle $u' = u$. Le point $u = 0$ est un équilibre, mais il n'est jamais atteint en temps fini pour une condition initiale non nulle. Cela montre qu'un équilibre peut être asymptotiquement stable sans être atteint en temps fini.
+
+    \item \textbf{Application au système étudié :} Supposons que $(g(t), w(t)) \to (g^*, w^*)$ lorsque $t \to +\infty$. Par continuité des fonctions définissant le système, nous avons :
+    $$
+    \lim_{t \to +\infty} \partial_t g(t) = 0 \quad \text{et} \quad \lim_{t \to +\infty} \partial_t w(t) = 0.
+    $$
+    En substituant $(g^*, w^*)$ dans les équations différentielles, on obtient :
+    $$
+    R_g g^*(1 - g^* - 0.6(w^*)^{0.31} / (E + g^*)) = 0,
+    $$
+    $$
+    R_w w^*(1 - w^* - 0.6(g^*)^{0.31} / (E + w^*)) = 0.
+    $$
+    Ces équations montrent que $(g^*, w^*)$ est un équilibre.
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,7 @@
+Considérant une équation différentielle (E), un **champ de vecteurs** correspond à une **application (de classe $C^k$) à valeurs dans l’espace vectoriel $R^n$**. Plus précisément, si l'équation différentielle est définie sur un ouvert de $R^n$, un champ de vecteurs (de classe $C^k$) sur cet ouvert est une fonction (de classe $C^k$) qui à chaque point de cet ouvert associe un vecteur de $R^n$.
+
+Dans le contexte des équations différentielles autonomes, de la forme $u'(t) = f(u(t))$, la fonction $f$ qui détermine la vitesse de changement de la variable $u$ en fonction de sa position $u(t)$ est précisément un champ de vecteurs. À chaque point $u$ de l'espace des phases, le champ de vecteurs $f(u)$ indique la direction et l'amplitude de la vitesse de la solution passant par ce point.
+
+Les **trajectoires des solutions maximales** de l'équation différentielle $u'(t) = f(u(t))$ sont appelées **courbes intégrales** du champ de vecteurs $f$. En tout point $u(t)$ d'une courbe intégrale, le vecteur $f(u(t)) = u'(t)$ est **tangent** à cette courbe.
+
+En résumé, pour une équation différentielle (E) de la forme $u'(t) = f(u(t))$ où $u$ prend ses valeurs dans $R^n$, la fonction $f$ est un champ de vecteurs qui spécifie la direction et la vitesse du mouvement en chaque point de l'espace des phases. Les solutions de l'équation différentielle suivent les courbes intégrales de ce champ de vecteurs.

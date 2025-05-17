@@ -7,7 +7,7 @@ from typing import Callable, Tuple , Any , List
 import numpy as np
 from numpy.typing import NDArray
 from scipy.integrate import solve_ivp , OdeSolution
-import matplotlib.pyplot as plt
+
 
 def solve_system(system: Callable,
                  initial_state: np.ndarray,
@@ -26,8 +26,9 @@ def solve_system(system: Callable,
 
 def compute_limit(system:Callable[[float,np.ndarray],np.ndarray],
                   initial_state:np.ndarray,
+                  *args,
                   t_max: float = 100,
-                  *args) -> np.ndarray:
+                  ) -> np.ndarray:
 
     """
     Calcule la limite d'une solution du système différentiel
@@ -47,10 +48,11 @@ def phi(initial_state:np.ndarray,
         eq1:np.ndarray,
         eq2:np.ndarray,
         system:Callable[[float , np.ndarray,Any],np.ndarray],
-        t_max:int=100,
-        *args)->float:
+        *args,
+        t_max:int=100
+        )->float:
     """
-    Fonction continue qui determine vers quel equilibre eq1 ou eq2 tend la solution
+    Distance signée indiquant vers quel équilibre la solution partant ``initial_state``
     ϕ(u₀) = ||u_∞ - equi₂ || - ||u_∞ - equi₁ ||
 
     Args:
@@ -58,11 +60,8 @@ def phi(initial_state:np.ndarray,
         eq1: Premier équilibre.
         eq2: Deuxième équilibre.
         system: Fonction représentant l'équation différentielle u' = f(u).
-        t_max: Temps maximal pour la simulation.
-        args: Paramètres supplémentaires pour E ( E = 0 par défaut )
-
-    Returns:
-    float: Distance signée indiquant vers quel équilibre la solution tend
+        t_max: Temps maximal pour la l'intégration.
+        args: Paramètres supplémentaires pour ( typiquement E  par défaut )
     """
     # S'assurer que les vecteurs sont correctement formatés
     initial_state = np.array(initial_state)
@@ -73,7 +72,7 @@ def phi(initial_state:np.ndarray,
                             system=system,
                             t_max=t_max,
                             *args)
-    return np.norm(u_lim - eq2) - np.norm(u_lim - eq1)
+    return np.linalg.norm(u_lim - eq2) - np.linalg.norm(u_lim - eq1)
 
 def near_point(eq: np.ndarray, n:int, eps : float = 0.1) -> List[NDArray[np.float64]]:
     """
@@ -85,41 +84,3 @@ def near_point(eq: np.ndarray, n:int, eps : float = 0.1) -> List[NDArray[np.floa
 
 
 
-
-def plot_vector_field_near_equilibria(func, equilibria, eps, n_points:int=20)->None:
-    """
-    Trace les vecteurs du champ func(u) autour des points d'équilibre dans un cercle de rayon eps.
-
-    Arguments:
-    func -- fonction de champ de vecteurs, prend un tableau de coordonnées et retourne les vecteurs
-    equilibria -- liste des points d'équilibre (coordonnées)
-    eps -- rayon autour des équilibres
-    n_points -- nombre de points à générer sur le cercle (par défaut 20)
-    """
-    fig , ax = plt.subplots(figsize=(8, 6))
-
-    for eq in equilibria:
-        points = near_point(np.array(eq), n_points, eps)
-        X, Y = zip(*points)
-        U, V = func([np.array(X), np.array(Y)])
-
-        plt.quiver(X, Y, U, V, color='blue', alpha=0.6)
-        plt.plot(eq[0], eq[1], 'ro')  # Marquer le point d'équilibre en rouge
-        circle = plt.Circle((eq[0], eq[1]), eps, color='red', fill=False, linestyle='--')
-        ax.add_artist(circle)
-
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.show()
-
-
-def F(u):
-    return -u[0]**2 + 2*u[1] , 2*u[1]-5
-
-
-equilibria = [
-    np.array([-5 , 5/2]) ,
-    np.array([5 , 5/2])
-]
-
-plot_vector_field_near_equilibria(func=F,eps=0.5,equilibria=equilibria)
