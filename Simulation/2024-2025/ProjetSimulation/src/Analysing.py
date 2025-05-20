@@ -197,6 +197,7 @@ class EvaluationResult(AnalysisResult):
         self.window_sizes = window_sizes  # Stocke les granularités utilisées
         self.metrics = kwargs.get("metrics", DEFAULT_METRICS)
 
+
     def generate_fig(self,plot_type="p_value"):
         """Génère une figure dynamiquement à partir de hist/stats"""
         if plot_type == "p_value":
@@ -254,7 +255,7 @@ def analyse_sequence(sequence:NDArray ,
         test : liste des tests à appliquer
         alpha : seuil de signification
         granularities : parmètres  fixant les tailles des fenêtres ; si ``NONE`` , on fait une analyse globale
-        name : nom final de l'analyse
+        name : titre de l'analyse (pour les tableaux des résultats et les graphiques)
     Returns
     ---
         AnalysisResult :

@@ -121,7 +121,7 @@ class Tests(ABC):
                 n_bins:Optional[int] = None,
                 binning : str = "quantile") -> Tuple[NDArray, int]:
         """
-        Discrétisation des éléments d'une séquence
+        Discrétisation des éléments d'une séquence entre ``[a,b]`` en ``n_bins`` catégories/classes selon la méthode de bining choisie.
 
         Parameters
         ----------
@@ -148,25 +148,33 @@ class Tests(ABC):
             d (int):
                 nombres de catégoris/classes
         """
-        data = np.array(data)
+        data = np.asarray(data)
+        n = len(data)
 
         if np.issubdtype(data.dtype, np.integer):
             return data, len(np.unique(data))
 
         d = n_bins if not n_bins is None else int(1 + np.log2(len(data)))  # règle de Sturges
+        d = max(1,d) # au moins 1 classe
 
+        # normalisation des données entre a et b
 
+        data_norm = (data - np.min(data)) / (np.max(data) - np.min(data))
+
+        data_norm = np.clip(data_norm , 0,1)
 
         if binning == "quantile":
-            bins = np.quantile(data, np.linspace(a,b,d + 1)[1:-1])
+            bins = np.quantile(data_norm, np.linspace(0,1,d + 1)[1:-1])
 
         elif binning == "uniform":
-            bins = np.linspace(np.min(data), np.max(data), d + 1)[1:-1]
+            bins = np.linspace(0 , 1 , d + 1)[1:-1]
 
         else:
-            raise NotImplementedError("méthodes de division ( ``binning``) non pris en charge , essayez 'quantile' ou 'uniform' ")
+            raise ValueError("méthodes de division ( ``binning``) non pris en charge , essayez 'quantile' ou 'uniform' ")
 
-        discretized = np.digitize(data, bins)
+        discretized = np.digitize(data_norm, bins)
+        if len(discretized) != n:
+            raise ValueError("Erreur penandant la discretisation des données")
         return discretized, d
 
 
@@ -193,7 +201,7 @@ class Chi2Test(Tests):
         self.probabilities = probabilities
 
     def __str__(self) -> str:
-        return f"Chi2_Test(k={self.k})"
+        return f"Chi2_Test(nb_bins = {self.k})"
 
     @staticmethod
     def group_low_frequence(observed: NDArray,
@@ -288,7 +296,7 @@ class Chi2Test(Tests):
             raise ValueError("Les données ne peuvent pas être vides")
 
         if np.issubdtype(data.dtype, np.integer):
-            # Pour les entiers, utiliser les valeurs uniques
+            # Pour les entiers, utiliser les valeurs uniques comme classes
             unique_values = np.unique(data)
             d = len(unique_values)
             observed = np.bincount(data, minlength=max(data) + 1)[unique_values]
@@ -432,7 +440,7 @@ class GapTest(Tests):
         self.p = beta_gap - alpha_gap # probabilité d'être marqué
 
     def __str__(self) -> str:
-        return f"Gap_Test( [ {self.alpha_gap} , {self.beta_gap} ] )"
+        return f"Gap_Test( intervall =  [ {self.alpha_gap} , {self.beta_gap} ] )"
 
     def _compute_gap_probabilities(self, max_gap: int) -> NDArray:
         """
@@ -512,258 +520,6 @@ class PokerTest(Tests):
     ----------
     group_size : int
         taille des groupes
-
-    """
-
-    def __init__(self, group_size: int = 5) -> None:
-        """
-        initialisation du test
-        """
-        if group_size < 2:
-            raise ValueError("La taille des groupes doit être ≥ 2")
-
-        self.group_size = group_size
-        self._motifs = self._generate_motifs(group_size)
-
-    def __str__(self) -> str:
-        return f"Poker_Test(t={self.group_size})"
-
-    @staticmethod
-    def _partitions(n:int, max_part:Optional[int]=None):
-        """
-        énumère toutes les façons de découper l'entier n en parts(en d'autres entiers tel que la somme de ce entiers = n) sous forme de listes de taille décroissantes
-
-        Parameters
-        ----------
-        n : int
-            nombre à partitionner
-        max_part : _type_, optional
-            _description_, by default None
-
-        Yields
-        ------
-        list
-            ensembles des listes partitionant n
-
-        Exemple
-        -------
-            pour n = 4 , génère successivement ``[4]`` ,  ``[3,1]`` , ``[2,2]`` , ``[2,1,1]`` , ``[1,1,1,1]``
-
-        """
-        if n == 0:
-            yield []
-        else:
-            # on ne prend pas de part plus grande que n
-            if max_part is None or max_part > n:
-                max_part = n
-            # on essaie toutes les tailles de part k = max_part, max_part-1, …, 1
-            for k in range(max_part, 0, -1):
-                # on découpe le reste n-k
-                for rest in _partitions(n - k, k):
-                    yield [k] + rest
-
-    @staticmethod
-    def _name_from_config(config)-> str:
-        """
-        permet nommer la configuration ou motif des d'éléments d'un groupe ,
-
-        Parameters
-        ----------
-        config : dict
-            dictionnaire des  ``{k : count}`` associant une taille de paquet ``k``  au nombre ``count`` de paquets de cette taille
-
-        Returns
-        -------
-        str :
-            nom de la configuration selon la nomenclature count-k uplet pour dire ``count`` paquet de ``k`` éléments (identiques içi)
-            si config est vide : retourn "all different"
-
-        Exemple
-        -------
-        pour ``config = {}`` : "all different"
-        pour ``config = { 3:2 , 2:5}`` -> liste ``[(3,2),(2,1)]`` -> ``["2–3–uplet","1–2–uplet"]`` → "2–3 uplet, 1–2 uplet"
-        """
-        # Pour chaque (k: count) on fabrique un morceau "count–k–uplet"
-        parts = [f"{count}–{k}–uplet" for k, count in sorted(config.items(), reverse=True)]
-        # On joint par des virgules, ou on renvoie "all different" si config vide
-        return ", ".join(parts) if parts else "all different"
-
-    @staticmethod
-    def _generate_poker_names(t: int) -> Dict[Tuple[int, ...] , str]:
-        """
-        Génère le dictionnaire des noms de motifs dans le cas où la taille t entre 2 et 5
-        """
-        base_names = {
-            2: {
-                (2,): "paire",
-                (1,1): "all different"
-            },
-            3: {
-                (3,): "brelan",
-                (2,1): "paire",
-                (1,1,1): "all different"
-            },
-            4: {
-                (4,): "carré",
-                (3,1): "brelan",
-                (2,2): "double paire",
-                (2,1,1): "paire",
-                (1,1,1,1): "all different"
-            },
-            5: {
-                (5,): "quintuplet",
-                (4,1): "carré",
-                (3,2): "full",
-                (3,1,1): "brelan",
-                (2,2,1): "double paire",
-                (2,1,1,1): "paire",
-                (1,1,1,1,1): "all different"
-            }
-        }
-        return base_names.get(t, {})
-
-    @staticmethod
-    def _generate_motifs(t: int) -> Dict[str,Dict[int,int]]:
-        """
-        Construit un dictionnaire de tous les motifs possibles pour un groupe de taille t.
-        """
-        mapping : Dict[str,Dict[int,int]]= {}
-
-        poker_names = PokerTest._generate_poker_names(t)
-
-        for p in PokerTest._partitions(t): # génère toutes les _partitions de t
-
-            cfg = Counter(p)
-
-            freq = tuple(sorted(p, reverse=True))
-
-            if freq == (t,) :
-                name = "all identic"
-            elif 2 <= t <= 5 :
-                name = poker_names.get(freq, PokerTest._name_from_config(cfg))
-            else:
-                name = PokerTest._name_from_config(dict(cfg))
-
-            if name in mapping and mapping[name]!=dict(cfg):
-                raise ValueError(f" Nom dupliqué pour des configurations différentes : {name}")
-            mapping[name] = dict(cfg)
-
-        return mapping
-
-    @staticmethod
-    def _invert_dict(motifs: Dict[str, Dict[int, int]]) -> Dict[Tuple[Tuple[int, int], ...], str]:
-        """
-        Inverse le dictionnaire des motifs en de dictionnaire { nom_config : config }  en {config : nom_motif }
-        """
-        invert = {}
-        for name , cfg in motifs.items():
-            key = tuple(sorted(cfg.items()))
-            invert[key] = name
-        return invert
-
-    @staticmethod
-    def _assign_motifs(group:NDArray,motifs : Dict[str,Dict[int,int]]) -> str:
-        """
-        Assigne un group de taille t au motif correspondant
-
-        Parameters
-        ----------
-        group : NDArray
-            groupe d'éléments de taille t
-        motifs : Dict[str,Dict[int,int]]
-            motifs possibles pour un  groupes de taille t
-
-        Returns
-        -------
-        str
-            nom du motif auquel correspond le group
-        """
-
-        freq = Counter(group)
-        cfg = Counter(freq.values())
-        key = tuple(sorted(cfg.items()))
-        return PokerTest._invert_dict(motifs).get(key , "inconnu")
-
-
-
-    @staticmethod
-    def _probabilities(t: int, d: int, motifs: Dict[str, Dict[int, int]]) -> Dict[str, float]:
-        """
-        Calcule les probabilités théoriques pour chaque motif.
-
-        Parameters
-        ----------
-        t : int
-            Taille des groupes
-        d : int
-            Nombre de valeurs distinctes possibles
-        motifs : Dict[str, Dict[int, int]]
-            Dictionnaire des motifs possibles
-
-        Returns
-        -------
-        Dict[str, float]
-            Probabilités d'apparition de chaque motif
-        """
-        probs = {}
-        for name, cfg in motifs.items():
-            r = sum(cfg.values())  # nombre d'éléments distincts dans le motif
-            probs[name] = Tests.stirling(t, r) * comb(d, r) * factorial(r) / (d ** t)
-        return probs
-
-    def test(self, data: NDArray, alpha: float = 0.05, info: bool = False):
-        self._validate_input(data)
-        n = len(data)
-
-        # Discrétisation si flottants
-        if not np.issubdtype(data.dtype, np.integer):
-            d = min(self.group_size, int(1 + np.log10(n)))
-            data_new, d = Tests.discretize(data, n_bins=d)
-        else:
-            data_new = data
-            d = len(np.unique(data))
-
-        # Découpage en groupes
-        n_group = n // self.group_size
-        if n_group < 1:
-            raise ValueError(f"Pas assez de données pour {self.group_size}")
-
-        groups = data_new[:n_group * self.group_size].reshape(n_group, self.group_size)
-
-        # Comptage des motifs
-        obs_counts = {}
-        for grp in groups:
-            name = PokerTest._assign_motifs(grp, self._motifs)
-            obs_counts[name] = obs_counts.get(name, 0) + 1
-
-        # Calcul des probabilités théoriques
-        probs = self._probabilities(self.group_size, d, self._motifs)
-
-        # Préparation des données pour le test chi2
-        observed = np.array([obs_counts.get(name, 0) for name in self._motifs.keys()])
-        expected_probs = np.array([probs.get(name, 0) for name in self._motifs.keys()])
-
-        # Test du chi2
-        chi2_test = Chi2Test(k=len(self._motifs), probabilities=expected_probs)
-        result = chi2_test.test(observed, alpha=alpha, info=info)
-
-        if info:
-            result[1].update({
-                "motifs": self._motifs,
-                "observed_counts": obs_counts,
-                "theoretical_probs": probs
-            })
-        return result
-
-
-class PokerTestv2(Tests):
-    """
-    Test du Poker généralisé pour t>=2
-
-    Attributes
-    ----------
-    group_size : int
-        taille des groupes
     n_bins : int
         nombre de catégories pour la division
 
@@ -780,7 +536,7 @@ class PokerTestv2(Tests):
         self.n_bins = n_bins
 
     def __str__(self) -> str:
-        return f"Poker_Test(t={self.group_size})"
+        return f"Poker_Test( group_size = {self.group_size})"
 
     def test(self,
              data: NDArray,
@@ -802,23 +558,23 @@ class PokerTestv2(Tests):
 
         groups = data_new[:n_group * self.group_size].reshape(n_group, self.group_size)
 
-        # Compter le nombre de valeurs distinctes dans chaque groupe cela permet aussi d'associer chaque groupe à la classe à laquelle il correspond
-        distinct_values = [len(Counter(group)) for group in groups]
+        # Compter les motifs (nombres de valeurs distinctes par groupe)
+        distinct_values = [len(set(group)) for group in groups]
 
         # nombre de catégories possibles (pour le test du chi-carré)
         d = min(self.group_size , d)
 
         # Compter  les groupes ayant r valeurs distinctes
-        observed = np.zeros(d+1)  # +1 car on compte de 1 à d valeurs distinctes
+        observed = np.zeros(d+1)  # +1 car on compte de 0 à d valeurs distinctes
         for r in distinct_values:
             observed[r] += 1
 
         # Calculer les probabilités théoriques pour chaque nombre r de valeurs distinctes
         probs = np.zeros(d+1)
         for r in range(1, d+1):
-            probs[r] = Tests.stirling(self.group_size, r)*comb(d,r)*factorial(r)/(d**self.group_size)
+            probs[r] = Tests.stirling(self.group_size, r)*factorial(d)/(factorial(d-r)*(d**self.group_size))
 
-        # Normaliser les probabilités
+
         probs = probs[1:]  # Enlever le cas r=0 qui est impossible
         observed = observed[1:]  # Enlever le cas r=0 qui est impossible
 
@@ -856,7 +612,7 @@ class CouponCollectorTest(Tests):
         self.max_lenght = max_lenght
 
     def __str__(self) -> str:
-        return f"Coupon_Collector_Test (d={self.d})"
+        return f"Coupon_Collector_Test (nb_coupon = {self.d})"
 
     def test(self,
              data: NDArray,
@@ -866,25 +622,35 @@ class CouponCollectorTest(Tests):
         Exécute le test du Collectionneur de Coupons.
         """
         self._validate_input(data)
-        n = len(data)
 
-        # Discrétiser la séquence pour se ramener dans le cas d'une séquence entière
+
+
+        # Discrétisation
         data_new , d  = Tests.discretize(data=data , n_bins = self.d)
 
+        t = self.max_lenght
+
         #-------------------------------------
-        # Calculer les longueurs des segments
+        # Calculer des longueurs de segments
         #-------------------------------------
+
 
         len_segments = []
         current_segment = set()
-        segment_length = 0
+        lenght = 0
         for value in data_new:
             current_segment.add(value)
-            segment_length += 1
-            if len(current_segment) == d:
-                len_segments.append(segment_length)
+            lenght += 1
+            # si le segment est trop long ,  on le coupe et on le stocke
+            if lenght >=t:
                 current_segment = set()
-                segment_length = 0
+                lenght = 0
+                len_segments.append(t)
+            # Si le segment est complet (contient toutes les valeurs distinctes)
+            if len(current_segment) == d:
+                len_segments.append(lenght)
+                current_segment = set()
+                lenght = 0
 
         if not len_segments: # aucun segment complet trouvé
             result = {'stat_obs': 0,
@@ -897,29 +663,37 @@ class CouponCollectorTest(Tests):
                 return result , {"message": "Pas de segments complets trouvés"}
             else :
                 return result
+
+        len_segments = np.array(len_segments)
         #--------------------------------------------------------
         # Calcul des probabilités théoriques pour chaque longueur
         #--------------------------------------------------------
+        size = t+1-d
+        probs = np.zeros(size)
+        for i in range(size-1):
+            r = d+i # longueur de segment
+            probs[i] = (factorial(d) / (d ** r)) * Tests.stirling(r - 1, d - 1)
 
-        # longueur maximale de segment à considérer
-        t = min(max( np.max(len_segments) , self.max_lenght) , n)
+        probs[size-1] = 1- np.sum(probs[:-1]) # dernier segment
+        observed_counts = np.zeros(size)
+        for val in len_segments:
+            idx = val - d
+            if 0<=idx<size:
+                observed_counts[idx]+=1
 
-        # porbabilités d'obtenir chaque longueur de segments observées
-        probs = np.zeros(t + 1)
-        for r in range(d, t):
-            probs[r] = (factorial(d) / (d ** r)) * Tests.stirling(r - 1, d - 1)
-
-        #probs[t] = 1-np.sum(probs[:t])
-        probs /= probs.sum() #normalisation
-
+        expected = len_segments.size * probs
         #---------------------------------
         # Appliquer le test du chi-carré sur la séquence des longueurs des segments
         #---------------------------------
-        chi2_test = Chi2Test(k=len(probs), probabilities=probs)
-        result = chi2_test.test(len_segments, alpha=alpha, info=info)
+
+        result = Chi2Test.test2(observed=observed_counts,expected=expected, alpha=alpha, info=info)
         if info :
-            result[1].update( {"length_segments":len_segments ,"d": d})
+            result[1].update( {
+                "length_segments":len_segments ,
+                "d": d,
+                "max_lenght":t})
         return result
+
 
 class KSTest(Tests):
     """
@@ -945,6 +719,7 @@ class KSTest(Tests):
 
     def __str__(self) -> str:
         return "K-S_Test"
+
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
@@ -994,6 +769,7 @@ class KSTest(Tests):
                             }
         return result
 
+
 class MaximumTest(Tests):
     """
     Test des maximums pour analyser la repartition des maximums dans une séquence aléatoire supposée uniforme.
@@ -1013,7 +789,7 @@ class MaximumTest(Tests):
         self.t = t
 
     def __str__(self) -> str:
-        return f"Maximum_Test ( t={self.t} )"
+        return f"Maximum_Test ( group_size = {self.t} )"
 
     def test(self,
              data: NDArray,
