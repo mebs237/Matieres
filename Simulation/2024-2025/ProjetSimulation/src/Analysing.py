@@ -9,7 +9,7 @@ from dataclasses import dataclass , field
 from pathlib import Path
 from typing import List, Dict, Optional, Union , Callable
 import numpy as np
-from pandas import DataFrame
+from pandas import DataFrame , concat
 import plotly.express as px
 from numpy.typing import NDArray
 from Tests import Tests , Chi2Test , KSTest
@@ -70,25 +70,9 @@ DEFAULT_METRICS = [
     )
 ]
 
-@dataclass
-class BaseResult:
-    """
-    Classe de base pour les résultats d'analyse
-    """
-    hist_df: DataFrame
-    stats: Dict[str, float]
-    name: str = field(default_factory=lambda: f"Result_{BaseResult._increment}")
-    _increment: int = 0
-
-    def __post_init__(self):
-        BaseResult._increment += 1
-
-    def __str__(self) -> str:
-        """Représentation string de l'analyse"""
-        return self.name
 
 @dataclass
-class AnalysisResult(BaseResult):
+class AnalysisResult:
     """
     Classe permettant l'encapsulation des résultats d'analyse d'une séquence afin de les manipuler pour :
         * créer , afficher et sauvegarder  des graphiques
@@ -142,10 +126,15 @@ class AnalysisResult(BaseResult):
             for k, v in formatted_stats.items()
         }
 
-        report += f"```json\n \n{json.dumps(rounded_stats, indent=2)}\n"
+        report += f"```json\n \n{json.dumps(rounded_stats, indent=2)}\n```\n\n"
 
+        report+=  self._interpret_stats(rounded_stats)
 
-        report += "## \nInterprétation:\n\n"
+        return report
+
+    def _interpret_stats(self, stats: dict) -> str:
+        """Interprétation des statistiques"""
+        report = "## Interprétation des stats :\n\n"
 
         # Analyse de la p-value moyenne
         mean_p = stats.get('mean_p_value', 0.5)
@@ -196,90 +185,112 @@ class AnalysisResult(BaseResult):
         hist_path = output_path / f"history_{self.name}.csv"
         self.hist_df.to_csv(hist_path, index=False)
 
-class EvaluationResult(BaseResult):
+
+class EvaluationResult(AnalysisResult):
     """
     Classe heritante de 'AnalysisResult' permettant l'encapsulation des résultats d'évaluation des générateurs
     """
     def __init__(self,
                  hist_df: DataFrame,
                  stats: dict,
-                 generator_name: str = None,
+                 name: str,
                  window_sizes: List[int] = None,
                  **kwargs):
-        super().__init__(hist_df, stats , window_sizes=window_sizes)
-        self.generator_name = generator_name
-        self.window_sizes = window_sizes  # Stocke les granularités utilisées
+        super().__init__(hist_df, stats ,name, window_sizes=window_sizes)
         self.metrics = kwargs.get("metrics", DEFAULT_METRICS)
 
 
-    def generate_fig(self,plot_type="p_value"):
-        """Génère une figure dynamiquement à partir de hist/stats"""
-        if plot_type == "p_value":
-            return px.line(
-                self.hist_df,
-                x="window_start",
-                y="p_value",
-                color="test_name",
-                title=f"Évolution des p-values ({self.name})"
-            )
-        # Ajouter d'autres types de graphiques (violin, heatmap, etc.)
-
-    def plot(self, plot_type: str = "p_value") -> None:
-        """Affiche directement la figure"""
-        fig = self.generate_fig(plot_type)
-        fig.show()
-
     def generate_report(self) -> str:
         report = super().generate_report()
-        report += "## Analyse des granularités\n"
+        report += "## Analyse par granularité\n"
         for w in self.window_sizes:
             subset = self.hist_df[self.hist_df["window_size"] == w]
-            report += f"- Fenêtre {w} : {subset['accept_ratio'].mean():.2%} de conformité\n"
+            report += f"- Fenêtre de taille {w} : {subset['accept'].mean():.2%} de conformité\n"
         return report
 
 
     def plot_metric_comparison(self, other: "EvaluationResult", metric: str):
         """Comparaison de métrique entre 2 générateurs"""
         df = DataFrame({
-            "Générateur": [self.generator_name, other.generator_name],
+            "Générateur": [self.name, other.name],
             metric: [self.stats[metric], other.stats[metric]]
         })
         px.bar(df, x="Générateur", y=metric, title=f"Comparaison de {metric}").show()
+
 
     def plot_p_values_evolution(self):
         """
         Trace l'évolution des p-values pour chaque test selon la granularité.
         """
         fig = px.line(self.hist_df, x="window_size", y="p_value", color="Test",
-                      title=f"Évolution des p-values pour {self.generator_name}")
+                      title=f"Évolution des p-values pour {self.name}")
         fig.show()
+
 
     def plot_p_values_distribution(self):
         """
         Affiche la distribution des p-values (violin plot) pour chaque test.
         """
         fig = px.violin(self.hist_df, y="p_value", color="Test", box=True, points="all",
-                        title=f"Distribution des p-values pour {self.generator_name}")
+                        title=f"Distribution des p-values pour {self.name}")
         fig.show()
+
 
     def plot_p_values_box_by_granularity(self):
         """
         Affiche les boîtes à moustaches des p-values par taille de fenêtre.
         """
-        fig = px.box(self.hist_df, x="window_size", y="p_value", color="Test",
-                     title=f"P-values par granularité pour {self.generator_name}")
-        fig.show()
-
-    def plot_granularity_analysis(self):
-        """
-        Graphique de l'effet des tailles de fenêtres sur les p-values.
-        """
         fig = px.box(self.hist_df,
                      x="window_size",
                      y="p_value",
                      color="Test",
-                     title=f"Impact de la granularité sur les p-values ({self.generator_name})")
+                     title=f"P-values par granularité pour {self.name}")
         fig.show()
+
+    def plot_p_values_box_by_test(self):
+        """
+        affiche les boîtes à moustaches des p-values par test.
+        """
+        fig = px.box(self.hist_df,
+                     x = "Test",
+                     y ="p_value",
+                     color = "window_size",
+                     title = f"p-values par test pour {self.name}")
+        fig.update_xaxes(title_text="Tests")
+        fig.update_yaxes(title_text="p_value")
+        fig.show()
+
+    def plot_heatmap_acceptance(self)->None:
+        """
+        Affiche une heatmap des taux d'acceptation des tests selon la granularité.
+        """
+        pivot = self.hist_df.pivot_table(index="window_size",
+                                         columns="Test",
+                                         values="accept",
+                                         aggfunc="median")
+        fig = px.imshow(pivot , text_auto=True,aspect="auto",
+                        title=f"Taux d'acceptation par granularité -{self.name}")
+        fig.update_xaxes(title_text="Tests")
+        fig.update_yaxes(title_text="Taille de la fenêtre")
+        fig.show()
+
+
+def to_wind_size(granularities: Union[List[Union[int,float]], int, float],
+                 len_seq: int
+                 )->List[int]:
+    """
+    Transforme une granularité ou liste de granularités en taille(s) entière(s) de sous séquence
+    """
+    # Si c'est un scalaire, le convertir en liste
+    if isinstance(granularities, (int, float)):
+        granularities = [granularities]
+    # Vérifier si les granularités sont des entiers ou des fractions
+    elif np.all([isinstance(g,int) and 0<g<=len_seq for g in granularities]) :
+        return granularities
+    elif np.all([isinstance(g,float) and 0.0<g<=1.0 for g in granularities]):
+        return [int(g*len_seq) for g in granularities]
+    else :
+        raise ValueError(f"les granularités doivent être > 0 ,  être soit des entiers <={len_seq} , soit des fractions  <=1 de la taille de ")
 
 
 def analyse_sequence(sequence:NDArray ,
@@ -357,28 +368,6 @@ def analyse_sequence(sequence:NDArray ,
                           name=name)
 
 
-def to_wind_size(granularities: Union[List[Union[int,float]], int, float],
-                 len_seq: int
-                 )->List[int]:
-    """
-    Transforme une granularité ou liste de granularités en taille(s) entière(s) de sous séquence
-    """
-    # Si c'est un scalaire, le convertir en liste
-    if isinstance(granularities, (int, float)):
-        granularities = [granularities]
-
-    n_gran = len(granularities)
-    if n_gran == 0:
-        raise ValueError("Aucune granularité fournie")
-
-    if np.all([isinstance(g,int)and 0<g<=len_seq for g in granularities]) :
-        return granularities
-    elif np.all([isinstance(g,float) and 0.0<g<=1.0 for g in granularities]):
-        return [int(g*len_seq) for g in granularities]
-    else :
-        raise ValueError(f"les granularités doivent être > 0 ,  être soit des entiers <={len_seq} , soit des fractions  <=1 de la taille de ")
-
-
 def evaluate_generator(generator : Generators ,
                        tests:Optional[List[Tests]] = None,
                        alpha: float = 0.05 ,
@@ -424,31 +413,30 @@ def evaluate_generator(generator : Generators ,
     if tests is None:
         tests = [Chi2Test() , KSTest()]
 
-    granularities = [0.1,0.2,0.3,0.4,0.5]
-
-    window_sizes = [g if (isinstance(g,int)and g<=seq_len) else int(g*seq_len) for g in granularities]
+    granularities = [0.1,0.3,0.5,1.0]
+    window_size = to_wind_size(granularities , seq_len)
     all_results = []
     for i in range(n_repeat):
         seq = generator.generate(seq_len)
         res = analyse_sequence(sequence=seq ,
                                alpha=alpha ,
                                tests=tests , granularities=granularities)
-        res.stats["Iteration"]=i
-        all_results.append(res.stats)
+        res.hist_df["Iteration"]=i
+        all_results.append(res.hist_df)
 
-    df = DataFrame(all_results)
+    df = concat(all_results,ignore_index=True)
 
     stats = {
-        "mean_p_value":df["mean_p_value"].mean(),
-        "std_p_value":df["mean_p_value"].std(),
+        "mean_p_value":df["p_value"].mean(),
+        "std_p_value":df["p_value"].std(),
         "accept_ratio":df["accept"].mean(),
         "rejection_ratio": 1 - df["accept"].mean(),
         }
 
     return EvaluationResult(hist_df=df ,
-                            generator_name=str(generator),
+                            name=str(generator),
                             stats=stats,
-                            window_sizes=window_sizes
+                            window_sizes=window_size
             )
 
 
@@ -549,32 +537,25 @@ def compare_p_values(gen1_result: EvaluationResult,
     Compare les p-values par test entre deux générateurs (boîtes à moustaches).
     """
     df1 = gen1_result.hist_df.copy()
-    df1["Générateur"] = gen1_result.generator_name
+    df1["Générateur"] = gen1_result.name
     df2 = gen2_result.hist_df.copy()
-    df2["Générateur"] = gen2_result.generator_name
+    df2["Générateur"] = gen2_result.name
     df = DataFrame([*df1.to_dict("records"), *df2.to_dict("records")])
 
     fig = px.box(df, x="Test", y="p_value", color="Générateur",
                  title="Comparaison des p-values par test entre les deux générateurs")
     fig.show()
 
+
 def compare_summary_stats(gen1_result: EvaluationResult, gen2_result: EvaluationResult, stat: str):
     """
     Compare une statistique globale (accept_ratio, mean_p_value, etc.) entre deux générateurs.
     """
     df = DataFrame({
-        "Générateur": [gen1_result.generator_name, gen2_result.generator_name],
+        "Générateur": [gen1_result.name, gen2_result.name],
         stat: [gen1_result.stats[stat], gen2_result.stats[stat]]
     })
     fig = px.bar(df, x="Générateur", y=stat, title=f"Comparaison de la statistique '{stat}'")
     fig.show()
 
-def plot_heatmap_acceptance(result: EvaluationResult):
-    """
-    Affiche une heatmap des taux d'acceptation des tests selon la granularité.
-    """
-    pivot = result.hist_df.pivot_table(index="window_size", columns="Test", values="accept_ratio", aggfunc="mean")
-    fig = px.imshow(pivot, text_auto=True, aspect="auto",
-                    title=f"Taux d'acceptation par granularité - {result.generator_name}")
-    fig.show()
 
