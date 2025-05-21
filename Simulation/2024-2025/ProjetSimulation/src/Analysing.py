@@ -8,7 +8,6 @@ import json
 from dataclasses import dataclass , field
 from pathlib import Path
 from typing import List, Dict, Optional, Union , Callable
-import logging
 import numpy as np
 from pandas import DataFrame
 import plotly.express as px
@@ -72,7 +71,24 @@ DEFAULT_METRICS = [
 ]
 
 @dataclass
-class AnalysisResult:
+class BaseResult:
+    """
+    Classe de base pour les résultats d'analyse
+    """
+    hist_df: DataFrame
+    stats: Dict[str, float]
+    name: str = field(default_factory=lambda: f"Result_{BaseResult._increment}")
+    _increment: int = 0
+
+    def __post_init__(self):
+        BaseResult._increment += 1
+
+    def __str__(self) -> str:
+        """Représentation string de l'analyse"""
+        return self.name
+
+@dataclass
+class AnalysisResult(BaseResult):
     """
     Classe permettant l'encapsulation des résultats d'analyse d'une séquence afin de les manipuler pour :
         * créer , afficher et sauvegarder  des graphiques
@@ -126,27 +142,23 @@ class AnalysisResult:
             for k, v in formatted_stats.items()
         }
 
-        report += f"```json\n{json.dumps(rounded_stats, indent=2)}\n```\n\n"
+        report += f"```json\n \n{json.dumps(rounded_stats, indent=2)}\n"
 
-        return report
 
-    @staticmethod
-    def _interpret_stats(stats: dict) -> str:
-        """Génère une interprétation détaillée des résultats."""
-        interpretation = "### Interprétation:\n"
+        report += "## \nInterprétation:\n\n"
 
         # Analyse de la p-value moyenne
         mean_p = stats.get('mean_p_value', 0.5)
         if mean_p > 0.7:
-            interpretation += f"- Excellente conformité (p-value moyenne: {mean_p:.3f})\n"
+            report += f"- Excellente conformité (p-value moyenne: {mean_p:.3f})\n"
         elif mean_p > 0.5:
-            interpretation += f"- Bonne conformité (p-value moyenne: {mean_p:.3f})\n"
+            report += f"- Bonne conformité (p-value moyenne: {mean_p:.3f})\n"
         elif mean_p > 0.3:
-            interpretation += f"- Conformité modérée (p-value moyenne: {mean_p:.3f})\n"
+            report += f"- Conformité modérée (p-value moyenne: {mean_p:.3f})\n"
         elif mean_p > 0.1:
-            interpretation += f"- Conformité faible (p-value moyenne: {mean_p:.3f})\n"
+            report += f"- Conformité faible (p-value moyenne: {mean_p:.3f})\n"
         else:
-            interpretation += f"- Non-conformité (p-value moyenne: {mean_p:.3f})\n"
+            report += f"- Non-conformité (p-value moyenne: {mean_p:.3f})\n"
 
         # Analyse du taux d'acceptation
         acc_ratio = stats.get('accept_ratio', 0)
@@ -154,11 +166,13 @@ class AnalysisResult:
         expected_ratio = 1 - alpha
 
         if acc_ratio > expected_ratio * 1.1:
-            interpretation += f"- Taux d'acceptation anormalement élevé ({acc_ratio:.1%} vs {expected_ratio:.1%} attendu)\n"
+            report += f"- Taux d'acceptation anormalement élevé ({acc_ratio:.1%} vs {expected_ratio:.1%} attendu)\n"
         elif acc_ratio > expected_ratio * 0.9:
-            interpretation += f"- Taux d'acceptation normal ({acc_ratio:.1%})\n"
+            report += f"- Taux d'acceptation normal ({acc_ratio:.1%})\n"
         else:
-            interpretation += f"- Taux d'acceptation trop bas ({acc_ratio:.1%} vs {expected_ratio:.1%} attendu)\n"
+            report += f"- Taux d'acceptation trop bas ({acc_ratio:.1%} vs {expected_ratio:.1%} attendu)\n"
+
+        return report
 
     def save_all(self, output_dir: Union[str, Path] = "results") -> None:
         """Sauvegarde tous les résultats dans un dossier."""
@@ -182,7 +196,7 @@ class AnalysisResult:
         hist_path = output_path / f"history_{self.name}.csv"
         self.hist_df.to_csv(hist_path, index=False)
 
-class EvaluationResult(AnalysisResult):
+class EvaluationResult(BaseResult):
     """
     Classe heritante de 'AnalysisResult' permettant l'encapsulation des résultats d'évaluation des générateurs
     """
@@ -219,18 +233,10 @@ class EvaluationResult(AnalysisResult):
         report = super().generate_report()
         report += "## Analyse des granularités\n"
         for w in self.window_sizes:
-            subset = self.hist[self.hist["window_size"] == w]
+            subset = self.hist_df[self.hist_df["window_size"] == w]
             report += f"- Fenêtre {w} : {subset['accept_ratio'].mean():.2%} de conformité\n"
         return report
 
-    def plot_granularity_analysis(self):
-        """Graphiques par granularité"""
-        fig = px.box(self.hist,
-                    x="window_size",
-                    y="p_value",
-                    color="test_name",
-                    title="Impact de la granularité sur les p-values")
-        fig.show()
 
     def plot_metric_comparison(self, other: "EvaluationResult", metric: str):
         """Comparaison de métrique entre 2 générateurs"""
@@ -239,6 +245,42 @@ class EvaluationResult(AnalysisResult):
             metric: [self.stats[metric], other.stats[metric]]
         })
         px.bar(df, x="Générateur", y=metric, title=f"Comparaison de {metric}").show()
+
+    def plot_p_values_evolution(self):
+        """
+        Trace l'évolution des p-values pour chaque test selon la granularité.
+        """
+        fig = px.line(self.hist_df, x="window_size", y="p_value", color="Test",
+                      title=f"Évolution des p-values pour {self.generator_name}")
+        fig.show()
+
+    def plot_p_values_distribution(self):
+        """
+        Affiche la distribution des p-values (violin plot) pour chaque test.
+        """
+        fig = px.violin(self.hist_df, y="p_value", color="Test", box=True, points="all",
+                        title=f"Distribution des p-values pour {self.generator_name}")
+        fig.show()
+
+    def plot_p_values_box_by_granularity(self):
+        """
+        Affiche les boîtes à moustaches des p-values par taille de fenêtre.
+        """
+        fig = px.box(self.hist_df, x="window_size", y="p_value", color="Test",
+                     title=f"P-values par granularité pour {self.generator_name}")
+        fig.show()
+
+    def plot_granularity_analysis(self):
+        """
+        Graphique de l'effet des tailles de fenêtres sur les p-values.
+        """
+        fig = px.box(self.hist_df,
+                     x="window_size",
+                     y="p_value",
+                     color="Test",
+                     title=f"Impact de la granularité sur les p-values ({self.generator_name})")
+        fig.show()
+
 
 def analyse_sequence(sequence:NDArray ,
                      tests : Optional[List[Tests]] = None,
@@ -285,11 +327,15 @@ def analyse_sequence(sequence:NDArray ,
             # Découper la séquence en sous séquence de taille wind_size
             for i in range(0,n-w +1 , w):
                 sub_seq = sequence[i:i+w]
+                test_result = test.test(sub_seq, alpha)
                 res = {
                 "Test" : str(test),
                 "window_start" : i,
                 "window_size" : w,
-                **test.test(sub_seq , alpha=alpha)
+                "p_value" : test_result.p_value,
+                "stat_obs" : test_result.stat_obs,
+                "stat_crit" : test_result.stat_crit,
+                "accept" : test_result.accept
                 }
                 results.append(res)
     columns = ["Test", "window_size" , "window_start" , "p_value", "accept","stat_obs","stat_crit"]
@@ -309,6 +355,7 @@ def analyse_sequence(sequence:NDArray ,
                           stats=stats,
                           window_sizes=window_sizes,
                           name=name)
+
 
 def to_wind_size(granularities: Union[List[Union[int,float]], int, float],
                  len_seq: int
@@ -396,7 +443,6 @@ def evaluate_generator(generator : Generators ,
         "std_p_value":df["mean_p_value"].std(),
         "accept_ratio":df["accept"].mean(),
         "rejection_ratio": 1 - df["accept"].mean(),
-        "violation_ratio":df["violation"].mean()
         }
 
     return EvaluationResult(hist_df=df ,
@@ -427,7 +473,7 @@ def enhanced_score( gen1: Generators,
     details = {}
     total_points = 0
     for metric in metrics:
-        total_points=+1
+        total_points+=1
         val1 = metric.function(gen1)
         val2 = metric.function(gen2)
 
@@ -496,4 +542,39 @@ def analyse_convergence(generator: Generators,
         'data': convergence_data
     }
 
+
+def compare_p_values(gen1_result: EvaluationResult,
+                     gen2_result: EvaluationResult):
+    """
+    Compare les p-values par test entre deux générateurs (boîtes à moustaches).
+    """
+    df1 = gen1_result.hist_df.copy()
+    df1["Générateur"] = gen1_result.generator_name
+    df2 = gen2_result.hist_df.copy()
+    df2["Générateur"] = gen2_result.generator_name
+    df = DataFrame([*df1.to_dict("records"), *df2.to_dict("records")])
+
+    fig = px.box(df, x="Test", y="p_value", color="Générateur",
+                 title="Comparaison des p-values par test entre les deux générateurs")
+    fig.show()
+
+def compare_summary_stats(gen1_result: EvaluationResult, gen2_result: EvaluationResult, stat: str):
+    """
+    Compare une statistique globale (accept_ratio, mean_p_value, etc.) entre deux générateurs.
+    """
+    df = DataFrame({
+        "Générateur": [gen1_result.generator_name, gen2_result.generator_name],
+        stat: [gen1_result.stats[stat], gen2_result.stats[stat]]
+    })
+    fig = px.bar(df, x="Générateur", y=stat, title=f"Comparaison de la statistique '{stat}'")
+    fig.show()
+
+def plot_heatmap_acceptance(result: EvaluationResult):
+    """
+    Affiche une heatmap des taux d'acceptation des tests selon la granularité.
+    """
+    pivot = result.hist_df.pivot_table(index="window_size", columns="Test", values="accept_ratio", aggfunc="mean")
+    fig = px.imshow(pivot, text_auto=True, aspect="auto",
+                    title=f"Taux d'acceptation par granularité - {result.generator_name}")
+    fig.show()
 

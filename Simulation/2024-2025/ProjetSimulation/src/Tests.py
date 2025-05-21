@@ -19,6 +19,7 @@ Fontions_Auxiliaires
 
     -discretize : pour discretiser des séquences de nombres à virgules en séquence d'entiers
     -stirling : nombre de stirling de 2e espèce
+
 Utilisation
 -----------
     Pour une ``sequence`` , on teste l'hypothèse **H₀ : 'la séquence suit une distribution uniforme entre 0 et 1'** avec le test statistique T en :
@@ -39,6 +40,7 @@ Exemple
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass , field
 from collections import Counter
 from typing import Dict , Union, Optional , Tuple , Callable
 from functools import lru_cache
@@ -46,6 +48,18 @@ from math import factorial , comb
 import numpy as np
 from numpy.typing import NDArray
 from scipy.stats import chi2 , kstwobign
+
+@dataclass
+class Result:
+    """
+    Classe pour tous les résultats de tests statistiques.
+    """
+    stat_obs: float = field(default=0.0)
+    stat_crit: float = field(default=0.0)
+    p_value: float = field(default=1.0)
+    accept: bool = field(default=False)
+    add_info: Optional[Dict] = field(default=None)
+
 
 class Tests(ABC):
     """
@@ -61,7 +75,7 @@ class Tests(ABC):
              data: NDArray,
              alpha: float = 0.05,
              info: bool = False
-            ) -> Union[Dict, Tuple[Dict]]:
+            ) -> Result:
         """
         Exécute le test statistique sur les données.
 
@@ -328,7 +342,7 @@ class Chi2Test(Tests):
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[Dict, Tuple[Dict]]:
+             info: bool = False) -> Result:
 
         self._validate_input(data)
 
@@ -346,27 +360,25 @@ class Chi2Test(Tests):
         p_value = 1 - chi2.cdf(chi2_stat, df)
         critical_value = chi2.ppf(1 - alpha, df)
 
-        result = {'stat_obs': chi2_stat,
-                  'stat_crit': critical_value,
-                  'p_value': p_value,
-                  'accept': p_value > alpha
-                 }
+        result = Result(stat_obs = chi2_stat,
+                        stat_crit = critical_value,
+                        p_value = p_value,
+                        accept = p_value > alpha )
 
         if info :
-            add_info = {"df" : df ,
+            result.add_info = {"df" : df ,
                         "observed" : observed,
                         "expected" : expected
                        }
-            return result , add_info
-        else :
-            return result
+
+        return result
 
     @staticmethod
     def test2(observed: NDArray,
               expected: NDArray,
               alpha: float = 0.05,
               info: bool = False
-              ) -> Union[Dict, Tuple[Dict, Dict]]:
+              ) -> Result:
         """
         Exécute le test du Chi-carré à partir des effectifs observés et attendus.
 
@@ -397,20 +409,18 @@ class Chi2Test(Tests):
         p_value = 1 - chi2.cdf(chi2_stat, df)
         critical_value = chi2.ppf(1 - alpha, df)
 
-        result = {
-            'stat_obs': chi2_stat,
-            'stat_crit': critical_value,
-            'p_value': p_value,
-            'accept': p_value > alpha
-        }
+        result = Result(stat_obs = chi2_stat,
+                        stat_crit = critical_value,
+                        p_value = p_value,
+                        accept =  p_value > alpha )
 
         if info:
-            return result, {"df": df,
+            result.add_info = {"df": df,
                             "observed": observed,
                             "expected": expected
                             }
-        else:
-            return result
+
+        return result
 
 
 class GapTest(Tests):
@@ -456,7 +466,7 @@ class GapTest(Tests):
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[Dict, Tuple[Dict]]:
+             info: bool = False) -> Result:
         """
         Exécute le test du Gap.
         """
@@ -473,17 +483,8 @@ class GapTest(Tests):
         indices = np.where(marks)[0]
 
         if len(indices) <= 1:
-            result = {
-                'stat_obs':0,
-                'stat_crit':0,
-                'p_value':1.0,
-                'accept' : False
-            }
+            return Result(add_info={"message": "Pas assez de marques pour calculer des gaps"})
 
-            if info :
-                return result , {"message": "Pas assez de marques pour calculer des gaps"}
-            else :
-                return result
 
         # Calculer les longueurs des gaps
         gaps = np.diff(indices) - 1
@@ -508,7 +509,7 @@ class GapTest(Tests):
         result =  Chi2Test.test2(gap_counts,expected_counts, alpha=alpha,info=info)
 
         if info :
-            result[1].update({"max_gap":t})
+            result.add_info.update({"max_gap":t})
         return result
 
 
@@ -541,7 +542,7 @@ class PokerTest(Tests):
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False):
+             info: bool = False)->Result:
         """
         Execute le test du poker
         """
@@ -582,7 +583,7 @@ class PokerTest(Tests):
         result = Chi2Test.test2(observed, n_group * probs, alpha=alpha, info=info)
 
         if info:
-            result[1].update({
+            result.add_info.update({
                 "group_size": self.group_size,
                 "n_bins": self.n_bins,
                 "theoretical_probs": probs,
@@ -617,7 +618,7 @@ class CouponCollectorTest(Tests):
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[Dict, Tuple[Dict]]:
+             info: bool = False) -> Result:
         """
         Exécute le test du Collectionneur de Coupons.
         """
@@ -653,16 +654,12 @@ class CouponCollectorTest(Tests):
                 lenght = 0
 
         if not len_segments: # aucun segment complet trouvé
-            result = {'stat_obs': 0,
-                      'stat_crit': 0,
-                      'p_value': 1,
-                      'accept': False
-                     }
+            result = Result()
 
             if info :
-                return result , {"message": "Pas de segments complets trouvés"}
-            else :
-                return result
+                result.add_info = {"message": "Pas de segments complets trouvés"}
+
+            return result
 
         len_segments = np.array(len_segments)
         #--------------------------------------------------------
@@ -687,11 +684,13 @@ class CouponCollectorTest(Tests):
         #---------------------------------
 
         result = Chi2Test.test2(observed=observed_counts,expected=expected, alpha=alpha, info=info)
+
         if info :
-            result[1].update( {
+            result.add_info.update( {
                 "length_segments":len_segments ,
                 "d": d,
                 "max_lenght":t})
+
         return result
 
 
@@ -724,7 +723,7 @@ class KSTest(Tests):
              data: NDArray,
              alpha: float = 0.05,
              info: bool = False
-             ) -> Union[Dict, Tuple[Dict]]:
+             ) -> Result:
         """
         Exécute le test de Kolmogorov-Smirnov.
         """
@@ -754,15 +753,13 @@ class KSTest(Tests):
         p_value = 1 - kstwobign.cdf(ks_stat)
         critical_value = kstwobign.ppf(1 - alpha)
 
-        result = {
-            'stat_obs': ks_stat,
-            'stat_crit': critical_value,
-            'p_value': p_value,
-            'accept': p_value > alpha
-        }
+        result = Result(stat_obs = ks_stat,
+                        stat_crit = critical_value,
+                        p_value = p_value,
+                        accept = p_value > alpha)
 
         if info:
-            return result, {'ks_df': n,
+            result.add_info = {'ks_df': n,
                             "D_plus": D_plus,
                             "D_minus": D_minus,
                             "n": n
@@ -794,7 +791,7 @@ class MaximumTest(Tests):
     def test(self,
              data: NDArray,
              alpha: float = 0.05,
-             info: bool = False) -> Union[Dict, Tuple[Dict]]:
+             info: bool = False) -> Result:
 
         self._validate_input(data)
 
@@ -822,9 +819,9 @@ class MaximumTest(Tests):
                                alpha=alpha ,
                                info=info)
         if info :
-            result[1].update({'max_df':self.t-1,
+            result.add_info.update({'max_df':self.t-1,
                               "max_values": max_values,
                               "t": self.t
-                              }
-                            )
+                              })
+
         return result

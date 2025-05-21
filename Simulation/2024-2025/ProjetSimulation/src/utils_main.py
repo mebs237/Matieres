@@ -4,9 +4,6 @@
 # IMPORTATION DES MODULES
 from numpy.typing import NDArray
 import numpy as np
-from Generators import PythonGenerator, OurGenerator
-from Tests import (Chi2Test , GapTest , KSTest  , MaximumTest , PokerTest , CouponCollectorTest)
-from Analysing import ( analyse_sequence )
 
 
 
@@ -91,47 +88,4 @@ def group_digits(array_1: NDArray, k: int) -> NDArray:
 
 
 decimals = read_decimal_file("data/e2M.txt")
-tes = [GapTest() ,
-       Chi2Test() ,
-       KSTest() ,
-       MaximumTest() ,
-       PokerTest(),
-       CouponCollectorTest()
-           ]
 
-
-def main():
-    """
-    programme pour l'étude automatique des décimales de e  et la comparaison de notre générateur(OurGenerator) contre celui de python (PythonGenerator)
-
-    """
-
-    #---------------------------------------------------------------
-    # ETUDE DU CARACTERE PSEUO-ALEATOIRE UNIFORME DES DECIMALS DE E
-    #---------------------------------------------------------------
-
-    ogen = OurGenerator(decimals=decimals)
-    pgen = PythonGenerator()
-    #----------------------------
-
-
-    for i in range(1000 , 10_000 , 1000):
-        seq_ogen = ogen.generate(i)
-        seq_pgen = pgen.generate(i)
-        resogen  = analyse_sequence(seq_ogen ,
-                                 tests=tes,
-                                 name = "seq_ogen_"+str(i))
-        respgen = analyse_sequence(seq_pgen ,
-                                 tests=tes,
-                                 name = "seq_pgen_"+str(i))
-        resogen.save_all('Analyse_results')
-        respgen.save_all('Analyse_results')
-
-    res_deci1000 = analyse_sequence(decimals[:1000] , tests=tes , name = "decimals_1000")
-    res_deci1000.save_all('Analyse_results')
-    #----------------------------
-    # COMPARAISON DES GENRATEURS
-    #----------------------------
-
-if __name__ == "__utils_main__":
-    main()
