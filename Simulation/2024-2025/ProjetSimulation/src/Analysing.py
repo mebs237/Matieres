@@ -92,17 +92,35 @@ class AnalysisResult:
 
     hist_df : DataFrame
     stats : Dict[str,float]
-    name : str = field(default_factory=lambda : f"Result_{AnalysisResult._increment}")
-    window_sizes : List[int] = field(default_factory = list)
+    name : str
+    window_sizes : List[int]
     _increment : int = 0
 
-
     def __post_init__(self):
-        AnalysisResult._increment += 1
+        if not self.name:
+            self.name = f"Result_{self.__class__._increment}"
+        self.__class__._increment += 1
 
     def __str__(self) -> str:
         """Représentation string de l'analyse"""
         return self.name
+
+    @property
+    def summary_by_test(self)->DataFrame:
+        """ aggregation des résultats par test"""
+        return self.hist_df.copy().groupby("Test").agg({
+            "p_value":["mean" , "median","std"],
+            "accept":"mean",
+            "stat_obs":"mean"
+        }).rename(columns={"mean":"mean_","std":"std_","median":"median_"})
+
+    @property
+    def summary_by_granularity(self)->DataFrame:
+        """ aggregation des résultats par granularité"""
+        return self.hist_df.copy().groupby("window_size").agg({
+            "p_value":["mean" , "median","std"],
+            "accept":"mean"
+        })
 
     def generate_report(self) -> str:
         """
@@ -163,6 +181,7 @@ class AnalysisResult:
 
         return report
 
+
     def save_all(self, output_dir: Union[str, Path] = "results") -> None:
         """Sauvegarde tous les résultats dans un dossier."""
         output_path = Path(output_dir)
@@ -178,45 +197,11 @@ class AnalysisResult:
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(self.generate_report())
 
-
     def save_hist(self, output_path: str) -> None:
         """Sauvegarde l'historique des résultats."""
         output_path = Path(output_path)
         hist_path = output_path / f"history_{self.name}.csv"
         self.hist_df.to_csv(hist_path, index=False)
-
-
-class EvaluationResult(AnalysisResult):
-    """
-    Classe heritante de 'AnalysisResult' permettant l'encapsulation des résultats d'évaluation des générateurs
-    """
-    def __init__(self,
-                 hist_df: DataFrame,
-                 stats: dict,
-                 name: str,
-                 window_sizes: List[int] = None,
-                 **kwargs):
-        super().__init__(hist_df, stats ,name, window_sizes=window_sizes)
-        self.metrics = kwargs.get("metrics", DEFAULT_METRICS)
-
-
-    def generate_report(self) -> str:
-        report = super().generate_report()
-        report += "## Analyse par granularité\n"
-        for w in self.window_sizes:
-            subset = self.hist_df[self.hist_df["window_size"] == w]
-            report += f"- Fenêtre de taille {w} : {subset['accept'].mean():.2%} de conformité\n"
-        return report
-
-
-    def plot_metric_comparison(self, other: "EvaluationResult", metric: str):
-        """Comparaison de métrique entre 2 générateurs"""
-        df = DataFrame({
-            "Générateur": [self.name, other.name],
-            metric: [self.stats[metric], other.stats[metric]]
-        })
-        px.bar(df, x="Générateur", y=metric, title=f"Comparaison de {metric}").show()
-
 
     def plot_p_values_evolution(self):
         """
@@ -226,7 +211,6 @@ class EvaluationResult(AnalysisResult):
                       title=f"Évolution des p-values pour {self.name}")
         fig.show()
 
-
     def plot_p_values_distribution(self):
         """
         Affiche la distribution des p-values (violin plot) pour chaque test.
@@ -234,7 +218,6 @@ class EvaluationResult(AnalysisResult):
         fig = px.violin(self.hist_df, y="p_value", color="Test", box=True, points="all",
                         title=f"Distribution des p-values pour {self.name}")
         fig.show()
-
 
     def plot_p_values_box_by_granularity(self):
         """
@@ -274,6 +257,55 @@ class EvaluationResult(AnalysisResult):
         fig.update_yaxes(title_text="Taille de la fenêtre")
         fig.show()
 
+    def plot_heatmap_p_values(self)->None:
+        """
+        Affiche une heatmap des p-values selon la granularité.
+        """
+        pivot = self.hist_df.pivot_table(index="window_size",
+                                         columns="Test",
+                                         values="p_value",
+                                         aggfunc="median")
+        fig = px.imshow(pivot , text_auto=True,aspect="auto",
+                        title=f"p-values par granularité -{self.name}")
+        fig.update_xaxes(title_text="Tests")
+        fig.update_yaxes(title_text="Taille de la fenêtre")
+        fig.show()
+
+class EvaluationResult(AnalysisResult):
+    """
+    Classe heritante de 'AnalysisResult' permettant l'encapsulation des résultats d'évaluation des générateurs
+    """
+    def __init__(self,
+                 hist_df: DataFrame,
+                 stats: dict,
+                 generator_name: str,
+                 window_sizes: List[int] = None,
+                 **kwargs):
+        super().__init__(hist_df, stats ,generator_name, window_sizes=window_sizes)
+        self.metrics = kwargs.get("metrics", DEFAULT_METRICS)
+
+
+    def generate_report(self) -> str:
+        report = super().generate_report()
+        report += "## Analyse par granularité\n"
+        for w in self.window_sizes:
+            subset = self.hist_df[self.hist_df["window_size"] == w]
+            report += f"- Fenêtre de taille {w} : {subset['accept'].mean():.2%} de conformité\n"
+        report += "\n## Résumé par test\n"
+        report += self.summary_by_test+"\n\n"
+        return report
+
+
+    def plot_metric_comparison(self, other: "EvaluationResult", metric: str):
+        """Comparaison de métrique entre 2 générateurs"""
+        df = DataFrame({
+            "Générateur": [self.name, other.name],
+            metric: [self.stats[metric], other.stats[metric]]
+        })
+        px.bar(df, x="Générateur", y=metric, title=f"Comparaison de {metric}").show()
+
+
+
 
 def to_wind_size(granularities: Union[List[Union[int,float]], int, float],
                  len_seq: int
@@ -281,6 +313,8 @@ def to_wind_size(granularities: Union[List[Union[int,float]], int, float],
     """
     Transforme une granularité ou liste de granularités en taille(s) entière(s) de sous séquence
     """
+    if len_seq<=0:
+        raise ValueError("la taillle de la séquence doit être > 0")
     # Si c'est un scalaire, le convertir en liste
     if isinstance(granularities, (int, float)):
         granularities = [granularities]
@@ -434,7 +468,7 @@ def evaluate_generator(generator : Generators ,
         }
 
     return EvaluationResult(hist_df=df ,
-                            name=str(generator),
+                            generator_name=str(generator),
                             stats=stats,
                             window_sizes=window_size
             )
@@ -513,7 +547,7 @@ def analyse_convergence(generator: Generators,
         results = evaluate_generator(generator, tests=tests, alpha=alpha, n_repeat=k, seq_len=n).stats
 
         # Calculer les métriques de convergence
-        rejection_rate = results['rejection_rate'].mean()
+        rejection_rate = results['rejection_ratio'].mean()
         p_value_stability = 1 - results['std_p_value'].mean()
 
         convergence_data['n_values'].append(n)

@@ -534,7 +534,7 @@ class PokerTest(Tests):
             raise ValueError("La taille des groupes doit être ≥ 2")
 
         self.group_size = group_size
-        self.n_bins = n_bins
+        self.n_bins = n_bins if n_bins is not None else group_size
 
     def __str__(self) -> str:
         return f"Poker_Test( group_size = {self.group_size})"
@@ -629,7 +629,7 @@ class CouponCollectorTest(Tests):
         # Discrétisation
         data_new , d  = Tests.discretize(data=data , n_bins = self.d)
 
-        t = self.max_lenght
+        t = max(self.max_lenght,d)
 
         #-------------------------------------
         # Calculer des longueurs de segments

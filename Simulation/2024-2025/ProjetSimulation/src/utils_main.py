@@ -3,7 +3,8 @@
 """
 # IMPORTATION DES MODULES
 from numpy.typing import NDArray
-import numpy as np
+from numpy import array
+
 
 
 
@@ -15,7 +16,7 @@ def read_decimal_file(file_path: str) -> NDArray:
         file_path (str): Chemin vers le fichier à lire.
 
     Returns:
-        Ndarray: Tableau contenant tous les chiffres.
+        NDArray: Tableau contenant tous les chiffres.
     """
     try:
         # Lecture et nettoyage du fichier
@@ -27,16 +28,16 @@ def read_decimal_file(file_path: str) -> NDArray:
         # Trouver le point décimal et extraire tous les chiffres après
         if '.' in content:
             _, digits = content.split('.', 1)
-            return np.array([int(d) for d in digits], dtype=int)
+            return array([int(d) for d in digits], dtype=int)
         else:
-            return np.array([], dtype=int)
+            return array([], dtype=int)
 
     except FileNotFoundError:
         print(f"Erreur : Le fichier '{file_path}' est introuvable.")
-        return np.array([])
+        return array([])
     except ValueError as e:
         print(f"Erreur lors de la lecture du fichier : {e}")
-        return np.array([])
+        return array([])
 
 
 def group_digits(array_1: NDArray, k: int) -> NDArray:
@@ -84,8 +85,48 @@ def group_digits(array_1: NDArray, k: int) -> NDArray:
                     for j in range(remaining_digits))
         result.append(number)
 
-    return np.array(result)
+    return array(result)
 
 
-decimals = read_decimal_file("data/e2M.txt")
 
+def plot_p_values_evolution(self):
+    """
+    Affiche l'évolution de la moyenne des p-values par itération.
+    """
+    df = self.hist_df
+    grouped = df.groupby("Iteration")["p_value"].mean().reset_index()
+
+    fig = px.line(grouped, x="Iteration", y="p_value",
+                  title=f"Évolution des p-values moyennes par itération ({self.name})",
+                  markers=True)
+    fig.update_yaxes(title_text="p_value moyenne")
+    fig.show()
+
+
+def plot_p_values_evolution(self):
+    """
+    Affiche l'évolution de la moyenne des p-values en fonction de la position,
+    pour chaque granularité (taille de fenêtre).
+    """
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+
+    fig = make_subplots(rows=len(self.window_sizes), cols=1,
+                        shared_xaxes=True,
+                        subplot_titles=[f"Granularité {g}" for g in self.window_sizes])
+
+    for idx, g in enumerate(sorted(self.window_sizes)):
+        sub_df = self.hist_df[self.hist_df["window_size"] == g]
+        grouped = sub_df.groupby("window_start")["p_value"].mean().reset_index()
+        fig.add_trace(
+            go.Scatter(x=grouped["window_start"], y=grouped["p_value"],
+                       mode="lines+markers", name=f"g={g}"),
+            row=idx + 1, col=1
+        )
+
+    fig.update_layout(height=300 * len(self.window_sizes),
+                      title_text=f"Évolution des p-values moyennes pour {self.name}",
+                      showlegend=False)
+    fig.update_xaxes(title_text="Position")
+    fig.update_yaxes(title_text="p_value moyenne")
+    fig.show()

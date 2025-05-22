@@ -30,7 +30,7 @@ class Generators(ABC):
         """
         return array([self.next() for _ in range(n)])
 
-    def compare_to(self,)-> NDArray:
+    def compare_to(self)-> NDArray:
         pass
 
 
