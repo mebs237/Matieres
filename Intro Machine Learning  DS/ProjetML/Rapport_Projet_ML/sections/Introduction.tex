@@ -1,0 +1,17 @@
+\section{Introduction}
+
+
+
+
+Ce projet a pour objectif principal la mise en pratique des techniques de \textit{Machine Learning} dans le contexte suivant~: la prédiction du score électoral d'Emmanuel Macron au second tour de l'élection présidentielle française de 2022, à l'échelle de chaque commune de la France métropolitaine.
+Nous voulons modéliser le pourcentage de voix obtenues par Emmanuel Macron, noté \% Voix/Ins, soit le nombre de voix exprimées pour Macron rapporté au nombre total d'inscrits, incluant les abstentionnistes et les votes nuls. Cette variable continue est modélisée à l'aide d'algorithmes de régression. Dans ce projet, nous utilisons ici deux modèles: la régression Lasso et XGBoost Regression.
+Le jeu de données principal, \texttt{results\_train.csv}, regroupe les résultats électoraux du second tour pour environ 60\% des communes françaises. Le reste des communes est contenu dans \texttt{results\_test.csv}, pour lesquelles les résultats sont masqués. La tâche consiste à entraîner un modèle sur l'échantillon d'apprentissage et à générer des prédictions sur l'échantillon de test, en minimisant l'erreur quadratique moyenne (RMSE).
+En complément des données électorales, quatre sources supplémentaires sont mises à disposition afin d’enrichir la modélisation~:
+
+\begin{itemize}
+  \item \texttt{Niveau\_de\_vie\_2013\_a\_la\_commune.xlsx}~: données sur les revenus moyens par commune.
+  \item \texttt{communes-france-2022.csv}~: caractéristiques géographiques et démographiques.
+  \item \texttt{age-insee-2020.xlsx}~: répartition de la population par tranches d’âge et par sexe.
+  \item \texttt{MDB-INSEE-V2.xls}~: indicateurs économiques, sanitaires, sociaux.
+
+\end{itemize}

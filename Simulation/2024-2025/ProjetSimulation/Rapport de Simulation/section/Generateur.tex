@@ -1,0 +1,48 @@
+\section{Notre Générateur}
+
+\subsection{fonctionnement}
+
+Le générateur implémente un générateur congruentiel linéaire (LCG, \emph{Linear Congruential Generator}) amélioré. Le principe de base repose sur la formule suivante~:
+
+\begin{equation}
+    X_{n+1} = (a \times X_n + c) \mod m
+\end{equation}
+
+où~:
+\begin{itemize}
+    \item $X_n$ est la valeur courante (la graine),
+    \item $a$ est le multiplicateur,
+    \item $c$ est l'incrément,
+    \item $m$ est le modulo.
+\end{itemize}
+
+Pour renforcer l'unicité et la qualité de l'aléa, la graine initiale est obtenue en combinant une séquence de chiffres (par exemple, des décimales de $e$), puis en la hachant avec SHA-256. Une opération de mélange supplémentaire (XOR et ajout d'un masque) est appliquée à chaque itération pour améliorer la dispersion des bits.
+
+\subsection{Pseudo-code d’implémentation}
+\begin{algorithm}
+\caption{Générateur de nombres pseudo-aléatoires}
+\begin{algorithmic}[1]
+\State \textbf{Initialisation:}
+\State $a \gets \text{valeur constante}$ \Comment{Multiplicateur}
+\State $c \gets \text{valeur constante}$ \Comment{Incément}
+\State $m \gets \text{valeur constante}$ \Comment{Module}
+\State $decimalSequence \gets \text{séquence de chiffres décimaux}$
+\State $bytes \gets \text{transformer}(decimalSequence)$ \Comment{Convertir en bytes}
+\State $hash \gets \text{SHA256}(bytes)$
+\State $seed \gets \text{extraireEntier}(hash, 0)$ \Comment{Extraire les 4 premiers octets}
+\State $mask \gets \text{extraireEntier}(hash, 4)$ \Comment{Extraire les 4 octets suivants}
+
+\State
+\Function{next}{}
+    \State $seed \gets (a \times seed + c) \mod m$
+    \State $x \gets seed$
+    \State $x \gets x \oplus (x \gg 16)$ \Comment{XOR avec décalage à droite de 16 bits}
+    \State $x \gets (x + mask) \mod m$
+    \State \Return $x / m$ \Comment{Nombre flottant entre 0 et 1}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\clearpage

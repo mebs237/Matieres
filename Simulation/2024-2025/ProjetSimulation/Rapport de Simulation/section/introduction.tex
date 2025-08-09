@@ -1,0 +1,13 @@
+\section{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+La génération de nombres pseudo-aléatoires est un enjeu crucial dans de nombreux domaines tels que la cryptographie, les systèmes bancaires ou la cybersécurité. Ces applications exigent des séquences numériques qui \emph{imitent} parfaitement l'aléatoire. Pour garantir cette qualité, des tests statistiques rigoureux sont indispensables.
+
+Dans le cadre de ce projet, nous avons étudié les décimales du nombre $e$ (2\,000\,000 de décimales fournies) pour évaluer leur caractère pseudo-aléatoire. Notre démarche s'est articulée en deux temps~:
+\begin{itemize}[leftmargin=*]
+    \item Analyse directe des décimales via des tests statistiques ($\chi^2$, Kolmogorov-Smirnov).
+    \item Construction d'un générateur de loi uniforme $[0,1[$ basé sur ces décimales, comparé ensuite au générateur natif de Python.
+\end{itemize}
+
+Pour implémenter ces tests, nous avons adopté une approche orientée objet, permettant une réutilisation aisée du code.Bien que nous ayons implémenté plusieurs tests(que vous trouverez dans le code fourni), nous avons opté pa ce rapport de vous présenter notamment les résultats des tests du $\chi^2$, du collectionneur de coupons et de Kolmogorov-Smirnov.
+
+\clearpage

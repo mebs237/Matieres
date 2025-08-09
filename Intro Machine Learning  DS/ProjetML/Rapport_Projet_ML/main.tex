@@ -1,0 +1,113 @@
+\documentclass{rapportUmons}
+\usepackage[nottoc]{tocbibind} % needed for displaying bibliography and other in the table of contents
+\usepackage[ruled, linesnumbered, french]{algorithm2e}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{csvsimple}
+\usepackage[autostyle]{csquotes}
+\usepackage[
+    defernumbers=true,
+    backend=biber,
+    style=ieee
+]{biblatex}
+\addbibresource{book.bib}
+\graphicspath{{./images/}}
+
+\begin{document}
+
+\begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+\center 
+%----------------------------------------------------------------------------------------
+%	HEADING SECTIONS
+%----------------------------------------------------------------------------------
+\textsc{\LARGE}\\[1.5cm]
+
+\vspace{3cm}
+
+\textsc{\LARGE Université de Mons}\\[1.5cm]
+\textsc{\LARGE Machine Learning }\\[0.5cm]
+\textsc{\LARGE Rapport du projet}\\[0.5cm]
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+\HRule \\ [0.4cm]
+{\huge\bfseries Prédiction du score de Macron au 2nd tour des élections 2022}\\ [0.4cm]
+\HRule \\ [1.5cm]
+%----------------------------------------------------------------------------------------
+%	AUTHOR SECTION
+%----------------------------------------------------------------------------------------
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Étudiants:}\\
+\textsc{Meyouguem Stela}\\
+\textsc{Djamgoum Roland}\\
+\textsc{Mebou Prestonne}\\
+
+
+\end{flushleft}
+\end{minipage}
+~
+\begin{minipage}{0.4\textwidth}
+\begin{flushright}\large
+\emph{Encadreur:} \\
+
+Pr.  Pierre VANDENHOVE
+
+\end{flushright}
+\end{minipage}\\[2cm]
+
+
+{\Large Année académique 2024-2025}\\[2cm]
+
+\includegraphics[width=6cm]{images/umonslogo.png}\\[1cm]
+
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\tableofcontents
+
+\newpage
+
+\listoffigures 
+
+\clearpage
+
+\pagenumbering{arabic}
+
+
+
+
+
+\input{sections/Introduction}
+
+
+\input{sections/Exploration}
+
+
+\input{sections/Methodologie}
+
+
+\input{sections/ResultsDiscussion}
+
+
+
+
+\clearpage
+\pagenumbering{roman}
+
+
+
+\end{document}

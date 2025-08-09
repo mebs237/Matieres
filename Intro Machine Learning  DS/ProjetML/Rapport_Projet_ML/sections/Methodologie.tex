@@ -1,0 +1,62 @@
+\section{Méthodologie}
+
+\subsection*{Prétraitement des données}
+
+Avant l'entraînement des modèles, plusieurs étapes de préparation ont été réalisées :
+
+\begin{itemize}
+  \item \textbf{Nettoyage} : suppression des variables non informatives (identifiants, constantes), traitement des valeurs manquantes (par suppression ou imputation simple).
+  \item \textbf{Conversion des types} : certaines colonnes contenant des virgules comme séparateur décimal ont été converties en format numérique.
+  \item \textbf{Encodage des variables catégorielles} : les variables qualitatives (ex. \texttt{Orientation Economique}) ont été encodées par one-hot encoding pour être utilisables dans les modèles.
+  \item \textbf{Normalisation} : une standardisation (\texttt{StandardScaler}) a été appliquée aux variables numériques pour les modèles sensibles à l’échelle des données, notamment Lasso.
+\end{itemize}
+
+\subsection*{Modèles utilisés}
+
+Nous avons utilisé deux modèles de régression complémentaires :
+
+\begin{itemize}
+  \item \textbf{Lasso (Least Absolute Shrinkage and Selection Operator)} \\
+  Il s'agit d'une régression linéaire régularisée via une pénalité L1, qui permet de réaliser automatiquement une sélection de variables en annulant certains coefficients. Ce modèle est utile pour interpréter les variables les plus influentes tout en réduisant le risque de surapprentissage.
+
+  \item \textbf{XGBoost (Extreme Gradient Boosting)} \\
+  Ce modèle est un ensemble d’arbres de décision entraînés séquentiellement. Il est reconnu pour ses performances élevées sur les données tabulaires, sa robustesse face au surapprentissage, et sa capacité à capturer des interactions complexes entre les variables. Il est également plus tolérant vis-à-vis de données non normalisées.
+\end{itemize}
+
+\subsection*{Ajustement des hyperparamètres}
+
+Les hyperparamètres ont été optimisés à l’aide d’une validation croisée (5-fold) combinée à une recherche par grille (\texttt{GridSearchCV} pour Lasso, \texttt{RandomizedSearchCV} pour XGBoost).
+
+\textbf{Pour Lasso} :
+\begin{itemize}
+  \item \texttt{alpha} : [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
+\end{itemize}
+
+\textbf{Pour XGBoost} :
+\begin{itemize}
+  \item \texttt{n\_estimators} : [100, 200, 300]
+  \item \texttt{max\_depth} : [3, 5, 7]
+  \item \texttt{learning\_rate} : [0.01, 0.05, 0.1]
+  \item \texttt{subsample} : [0.7, 0.8, 1.0]
+  \item \texttt{colsample\_bytree} : [0.7, 0.8, 1.0]
+\end{itemize}
+
+\subsection*{Critère d’évaluation}
+
+Nous utilisons la \textbf{root mean squared error (RMSE)} comme métrique principale d’évaluation, conformément aux consignes du projet. Elle pénalise davantage les grandes erreurs et est adaptée aux valeurs continues.
+
+\subsection*{Justification des choix}
+
+\begin{itemize}
+  \item \textbf{Lasso} a été choisi pour sa simplicité, sa capacité à effectuer une sélection automatique de variables et son pouvoir d’interprétation.
+  \item \textbf{XGBoost} a été sélectionné pour ses excellentes performances prédictives sur des données hétérogènes, sa capacité à gérer les non-linéarités et ses mécanismes intégrés de régularisation.
+  \item L’utilisation de pipelines scikit-learn permet de chaîner les étapes de prétraitement et d’entraînement de manière reproductible.
+\end{itemize}
+
+\subsection*{Implémentation}
+
+Les modèles ont été implémentés en Python à l’aide des bibliothèques \texttt{scikit-learn} et \texttt{xgboost}. Le code est organisé pour permettre une réexécution facile, avec gestion automatique des transformations via des objets \texttt{Pipeline}.
+
+
+
+

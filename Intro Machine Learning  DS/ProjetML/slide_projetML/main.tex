@@ -1,0 +1,47 @@
+% import du préambule
+\include{beamer_config/preambule}
+
+% définir de nouvelle commande , utiles si on écrit plusieurs fois la même choses
+\newcommand{\BN}{ \beta \mathbb{N}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\renewcommand{\O}{\mathcal{O}}
+\renewcommand{\t}{\text}
+
+
+
+
+% Paramètres de la page de garde.
+\title{Prédiction du score de Macron au 2nd tour des élections 2022}
+\author{Roland , Stela , Prestonne}
+\institute[]{%
+  Université de Mons
+  \\[2ex]
+  \includegraphics[height=4ex]{beamer_config/images/logoumons.jpg}\hspace{2em}%
+  \raisebox{-1ex}{\includegraphics[height=6ex]{beamer_config/images/logofs.jpg}}
+} 
+\date{ \today } 
+ 
+
+
+\begin{document}
+
+\begin{frame} 
+    \titlepage
+\end{frame}
+
+\begin{frame}
+    \tableofcontents
+\end{frame}
+
+
+\section{Exploration des données}
+\input{sections/ExplorationDonnées}
+
+\section{Méthodologie}
+\input{sections/Methodologie}
+
+\section{Resultats et Discussions}
+\input{sections/ResultsDiscussion}
+
+\end{document}

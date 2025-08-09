@@ -1,0 +1,33 @@
+\documentclass[a4paper,12pt]{beamer}
+
+\usetheme{Boadilla}
+
+% Slide automatique à chaque début de section
+\AtBeginSection[]{
+  \begin{frame}
+    \centering
+    {\color{blue} \LARGE \bfseries \insertsection}
+  \end{frame}
+}
+
+% Titre de sous-section affiché dans la marge (pas de slide)
+\AtBeginSubsection[]{
+}
+
+%importation des csv et leur lecture
+\usepackage{csvsimple}
+\usepackage{booktabs}
+
+\setbeamertemplate{frametitle continuation}{}
+
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage[OT1]{fontenc}
+\usepackage{siunitx}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath , amsthm , amscd , amsfonts , amssymb}
+\usepackage{geometry}

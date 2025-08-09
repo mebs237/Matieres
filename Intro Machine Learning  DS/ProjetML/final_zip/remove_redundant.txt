@@ -1,0 +1,157 @@
+#====================================================================
+
+def display_correlation_matrix(df, table=False, target=None, threshold=0.5  , save=True , name:str='corr_matrix1'):
+    """
+    Affiche la matrice de corrélation entre les colonnes numériques du DataFrame.
+    """
+    t_in = (target in df.columns)
+    num_cols = df.select_dtypes(include=[np.number]).columns
+
+    if len(num_cols) == 0:
+        raise ValueError("Aucune colonne numérique trouvée dans le DataFrame.")
+
+    if (target is not None) and t_in:
+        num_cols = [target] + [col for col in num_cols if col != target]
+
+    corr_matrix = df.copy()[num_cols].corr()
+
+    # Correction de la création du masque triangulaire
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+
+    # Correction de la ligne problématique
+    filtered_corr = upper[
+        (upper.abs() > threshold) &
+        (upper != 1.0)
+    ].dropna(how='all', axis=0).dropna(axis=1, how='all')
+
+    if table:
+        display(filtered_corr)
+    else:
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(upper, annot=True, cmap="RdBu")
+        plt.savefig(os.path.join("Figures",f"{name}.png")) if save else None
+        plt.show()
+
+def get_target_correlations(df, target, threshold=0.5, verbose=True):
+    """
+    Identifie les colonnes fortement corrélées avec la variable cible.
+
+    Args:
+        df (pd.DataFrame): Le DataFrame d'entrée
+        target (str): Nom de la colonne cible
+        threshold (float): Seuil de corrélation (défaut: 0.5)
+        verbose (bool): Si True, affiche les résultats
+
+    Returns:
+        list: Liste des colonnes fortement corrélées avec la cible
+    """
+    if target not in df.columns:
+        raise ValueError(f"La colonne cible '{target}' n'existe pas dans le DataFrame")
+
+    # Calcul des corrélations avec la cible
+    correlations = df.corr()[target].sort_values(ascending=False)
+
+    # Filtrage des corrélations significatives (en excluant la cible elle-même)
+    strong_corr = correlations[
+        (correlations.abs() >= threshold) &
+        (correlations.index != target)
+    ]
+
+    if verbose:
+        print(f"\nColonnes fortement corrélées avec {target} (|corr| >= {threshold}):")
+        print(strong_corr)
+
+    return strong_corr.index.tolist()
+
+def get_correlated_pairs(df, threshold=0.5, verbose=True):
+    """
+    Identifie les paires de colonnes fortement corrélées entre elles.
+
+    Args:
+        df (pd.DataFrame): Le DataFrame d'entrée
+        threshold (float): Seuil de corrélation (défaut: 0.5)
+        verbose (bool): Si True, affiche les résultats
+
+    Returns:
+        list: Liste de tuples (colonne1, colonne2, correlation)
+    """
+
+    # Sélectionner uniquement les colonnes numériques
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+
+    if len(numeric_cols) == 0:
+        raise ValueError("Aucune colonne numérique trouvée dans le DataFrame")
+
+    # Calcul de la matrice de corrélation
+    corr_matrix = df[numeric_cols].corr()
+
+    # Création d'une liste de paires corrélées
+    correlated_pairs = []
+
+    # Parcours de la matrice triangulaire supérieure
+    for i in range(len(corr_matrix.columns)):
+        for j in range(i+1, len(corr_matrix.columns)):
+            if abs(corr_matrix.iloc[i, j]) >= threshold:
+                col1 = corr_matrix.index[i]
+                col2 = corr_matrix.columns[j]
+                correlation = corr_matrix.iloc[i, j]
+                correlated_pairs.append((col1, col2, correlation))
+
+    # Tri par corrélation absolue décroissante
+    correlated_pairs.sort(key=lambda x: abs(x[2]), reverse=True)
+
+    if verbose:
+        print(f"\nPaires de colonnes fortement corrélées (|corr| >= {threshold}):")
+        for col1, col2, corr in correlated_pairs:
+            print(f"{col1:<20} - {col2:<20}: {corr:.3f}")
+        sep()
+
+    return correlated_pairs
+
+def select_best_features(df, target, threshold=0.5):
+    """
+    Sélectionne les meilleures features en éliminant les variables corrélées.
+
+    Args:
+        df (pd.DataFrame): Le DataFrame d'entrée
+        target (str): Nom de la colonne cible
+        threshold (float): Seuil de corrélation
+
+    Returns:
+        list: Liste des colonnes à conserver
+    """
+    num_col = df.select_dtypes(include=[np.number]).columns
+    if target not in num_col:
+        raise ValueError(f"La colonne cible '{target}' n'existe pas dans le DataFrame")
+    if len(num_col) == 0:
+        raise ValueError("Aucune colonne numérique trouvée dans le DataFrame")
+
+    dfs = df[num_col].copy()
+
+    # Obtention des corrélations avec la cible
+    target_corr = pd.Series({
+        col: abs(dfs[col].corr(dfs[target]))
+        for col in dfs.columns if col != target
+    })
+
+    # Obtention des paires corrélées
+    correlated_pairs = get_correlated_pairs(df, threshold, verbose=False)
+
+    # Colonnes à éliminer
+    to_drop = set()
+
+    # Pour chaque paire corrélée, on garde celle qui a la plus forte corrélation avec la cible
+    for col1, col2, _ in correlated_pairs:
+        if col1 != target and col2 != target:
+            if target_corr[col1] < target_corr[col2]:
+                to_drop.add(col1)
+            else:
+                to_drop.add(col2)
+
+    # Liste finale des colonnes à conserver
+    columns_to_keep = [col for col in df.columns if col not in to_drop and col != target]
+
+    print(f"\nColonnes  éliminées: {sorted(to_drop)}")
+    print(f"Colonnes  conservées: {sorted(columns_to_keep)}")
+
+    return columns_to_keep , list(to_drop)

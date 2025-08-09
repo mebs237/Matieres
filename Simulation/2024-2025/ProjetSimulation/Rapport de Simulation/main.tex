@@ -1,0 +1,59 @@
+\include{build/preambule}
+% Commandes pour les algorithmes
+\renewcommand{\listalgorithmname}{Liste des algorithmes}
+\floatname{algorithm}{Algorithme}
+\renewcommand{\algorithmicreturn}{\textbf{retourne}}
+\renewcommand{\algorithmicprocedure}{\textbf{procédure}}
+% \renewcommand{\Not}{\textbf{non}\ }
+\renewcommand{\And}{\textbf{et}\ }
+% \renewcommand{\Or}{\textbf{ou}\ }
+\renewcommand{\algorithmicrequire}{\textbf{Entrées:}}
+\renewcommand{\algorithmicensure}{\textbf{Sorties:}}
+%\renewcommand{\algorithmiccomment}[1]{\{#1\}}
+\renewcommand{\algorithmicend}{\textbf{fin}}
+\renewcommand{\algorithmicif}{\textbf{si}}
+\renewcommand{\algorithmicthen}{\textbf{alors}}
+\renewcommand{\algorithmicelse}{\textbf{sinon}}
+\renewcommand{\algorithmicfor}{\textbf{pour}}
+\renewcommand{\algorithmicforall}{\textbf{pour tout}}
+\renewcommand{\algorithmicdo}{\textbf{faire}}
+\renewcommand{\algorithmicwhile}{\textbf{tant que}}
+\newcommand{\algorithmicelsif}{\algorithmicelse\ \algorithmicif}
+\newcommand{\algorithmicendif}{\algorithmicend\ \algorithmicif}
+\newcommand{\algorithmicendfor}{\algorithmicend\ \algorithmicfor}
+
+\algnewcommand\algorithmicforeach{\textbf{pour chaque}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}     
+
+\theoremstyle{definition}
+\newtheorem{definition}{Définition}[section]
+
+\newtheorem*{example}{Exemple}
+\newtheorem*{remark}{Remarque}
+
+\setlength{\parskip}{4mm}
+
+\begin{document}
+
+\input{titlepage.tex}
+
+\tableofcontents
+\newpage
+
+\input{section/introduction.tex}
+
+\input{rapport/section/étude_decimal_e}
+\input{rapport/section/etude_générateur}
+
+\input{rapport/section/comparaisons_génarteur}
+\input{section/conclusion.tex}
+
+% printing bibliography items
+%\addcontentsline{toc}{section}{Source}
+%\printbibheading[title={Source}]
+%\printbibliography[title={Source}]
+\nocite{*}
+\bibliographystyle{plain} % Choose your style
+\bibliography{book}
+
+\end{document}

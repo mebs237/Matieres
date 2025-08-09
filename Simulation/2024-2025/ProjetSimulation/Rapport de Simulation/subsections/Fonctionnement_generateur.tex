@@ -1,0 +1,15 @@
+\subsection{Fonctionnement}
+Pour le mode fonctionnement du générateur , on s'est jsute basé sur le fait d'introduire le plus possible de l'aléa dans le chhoix et la génration de nombre. L'idée c'est de selctionner un bloc de longueur block\_size de décimales de $\pi$ de façon alétoire  , le nombre selectioné servira de semence à un algorithme de congruence linéaire , puis normaliser le nombre obtenu pour qui soit compris entre 0 et 1 . %\input{rapport/section/generator} qui va nous permettre, avec l'offset, de calculer ce nombre.
+ pour une sequence de N nombres donner en arguments au générateurs , voiçi  les étapes de génération d'un nombre aléatoire resultat de la méthode 
+
+\begin{itemize}
+    \item[>] choix aléatoire de la position de la 1ère première index
+    \item[>] selectionner les block\_size ( 7 par défaut ) décimaux à partir de index de façon circulaire : c'est à dire qu'on revient au début de la liste des décimales de $\pi$ lorsqu'on a déjà tout parcouru : dans le code \[ indices = np.arrange(index, index+ block\_size)mod N\]
+    \item[>]  le block obtenu correspond à $X_0$
+    \item[>] la formule de l'algorithme de congruence linéaire permet d'avoir 
+\[ X = (a.X_o + c )\mod(m)\] \text{avec} $a =1664525 ,c = 1013904223  , m =  2^{32}$ , 
+    \item[>] Ensuite $X_n$ est normalisé et pour obtenir \[ u = \frac{X}{m}\]
+    \item[>] l'index est ensuite mise jour par la formule \[ index = (index + random(1,N-block\_size) ) mod N\]  
+\end{itemize}
+    le $modN$ en plus de permettre de ne pas déborder de la liste(séquence des décimales) permet aussi de parcourir toutes les décimales de façon circulaire \\
+    le $modm$ et la division par m assure bien que le nombres final généré sera bien entre 0 et 1

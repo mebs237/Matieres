@@ -1,0 +1,54 @@
+\subsection{BenschmarkdesModels}
+
+\begin{table}[ht!]
+    \centering
+    \begin{tabular}{@{}lcc@{}}
+        \toprule
+        Modèle & RMSE (CV) & Temps d'entraînement \\
+        \midrule
+        Lasso & 5.12 $\pm$ 0.3 & 45s \\
+        ElasticNet & 4.98 $\pm$ 0.2 & 52s \\
+        \textbf{XGBoost} & \textbf{4.21} $\pm$ 0.4 & 6min \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparaison des modèles après optimisation hyperparamètre}
+    \label{tab:perf}
+\end{table}
+
+
+\subection{Analyse des Résidus }
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Figures/analyse_XGBoost.png}
+    \caption{Distribution des résidus et prédictions vs vraies valeurs}
+    \label{fig:residus}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+\section{Résultats}
+\subsection{Benchmark des modèles}
+\subsection{Analyse des résidus}
+
+\section{Discussion}
+\subsection{Facteurs clés}
+\begin{itemize}
+    \item \textcolor{blue}{\texttt{Indice fiscal}} : Corrélation positive (+0.62) avec le score de Macron
+    \item \textcolor{blue}{\texttt{\% Seniors}} : Impact négatif inattendu (-0.45)
+    \item \textcolor{blue}{\texttt{Densité médicale}} : Peu d'influence (corr. = 0.18)
+\end{itemize}
+
+\subsection{Limites}
+\begin{itemize}
+    \item Biais géographique : Sous-représentation des communes rurales (30\% de NA)
+    \item Temporalité : Données socio-économiques antérieures à 2020
+\end{itemize}
